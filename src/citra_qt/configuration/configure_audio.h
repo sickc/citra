@@ -22,7 +22,8 @@ public:
     void retranslateUi();
 
 public slots:
-    void updateAudioDevices(int sink_index);
+    void updateAudioOutputDevices(int sink_index);
+    void updateAudioInputDevices(int index);
 
 private:
     void setConfiguration();
