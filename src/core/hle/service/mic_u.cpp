@@ -4,6 +4,7 @@
 
 #include "common/logging/log.h"
 #include "core/core.h"
+#include "core/frontend/mic.h"
 #include "core/hle/ipc.h"
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/event.h"
@@ -14,18 +15,20 @@
 
 namespace Service::MIC {
 
+/// Microphone audio encodings.
 enum class Encoding : u8 {
-    PCM8 = 0,
-    PCM16 = 1,
-    PCM8Signed = 2,
-    PCM16Signed = 3,
+    PCM8 = 0,        ///< Unsigned 8-bit PCM.
+    PCM16 = 1,       ///< Unsigned 16-bit PCM.
+    PCM8Signed = 2,  ///< Signed 8-bit PCM.
+    PCM16Signed = 3, ///< Signed 16-bit PCM.
 };
 
+/// Microphone audio sampling rates.
 enum class SampleRate : u8 {
-    SampleRate32730 = 0,
-    SampleRate16360 = 1,
-    SampleRate10910 = 2,
-    SampleRate8180 = 3
+    Rate32730 = 0, ///< 32728.498 Hz
+    Rate16360 = 1, ///< 16364.479 Hz
+    Rate10910 = 2, ///< 10909.499 Hz
+    Rate8180 = 3   ///< 8182.1245 Hz
 };
 
 struct MIC_U::Impl {
@@ -46,14 +49,14 @@ struct MIC_U::Impl {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
 
-        LOG_WARNING(Service_MIC, "called, size=0x{:X}", size);
+        LOG_DEBUG(Service_MIC, "called, size=0x{:X}", size);
     }
 
     void UnmapSharedMem(Kernel::HLERequestContext& ctx) {
         IPC::RequestParser rp{ctx, 0x02, 0, 0};
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
-        LOG_WARNING(Service_MIC, "called");
+        LOG_DEBUG(Service_MIC, "called");
     }
 
     void StartSampling(Kernel::HLERequestContext& ctx) {
@@ -61,9 +64,32 @@ struct MIC_U::Impl {
 
         encoding = rp.PopEnum<Encoding>();
         sample_rate = rp.PopEnum<SampleRate>();
-        audio_buffer_offset = rp.PopRaw<s32>();
+        audio_buffer_offset = rp.PopRaw<u32>();
         audio_buffer_size = rp.Pop<u32>();
         audio_buffer_loop = rp.Pop<bool>();
+
+        auto sign = encoding == Encoding::PCM8Signed || encoding == Encoding::PCM16Signed
+                        ? Frontend::Mic::Signedness::Signed
+                        : Frontend::Mic::Signedness::Unsigned;
+        u8 sample_size = encoding == Encoding::PCM8Signed || encoding == Encoding::PCM8 ? 8 : 16;
+        u32 real_rate;
+        switch (sample_rate) {
+        case SampleRate::Rate8180:
+            real_rate = 8180;
+            break;
+        case SampleRate::Rate10910:
+            real_rate = 10910;
+            break;
+        case SampleRate::Rate16360:
+            real_rate = 16360;
+            break;
+        case SampleRate::Rate32730:
+            real_rate = 32730;
+            break;
+        }
+
+        mic->StartRecording({sign, sample_size, audio_buffer_loop, real_rate, audio_buffer_offset,
+                             audio_buffer_size});
 
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
@@ -97,7 +123,7 @@ struct MIC_U::Impl {
         IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
         rb.Push(RESULT_SUCCESS);
         rb.Push<bool>(is_sampling);
-        LOG_WARNING(Service_MIC, "(STUBBED) called");
+        LOG_DEBUG(Service_MIC, "");
     }
 
     void GetBufferFullEvent(Kernel::HLERequestContext& ctx) {
@@ -197,13 +223,15 @@ struct MIC_U::Impl {
     u8 mic_gain = 0;
     bool mic_power = false;
     bool is_sampling = false;
-    bool allow_shell_closed;
+    bool allow_shell_closed = false;
     bool clamp = false;
     Encoding encoding = Encoding::PCM8;
-    SampleRate sample_rate = SampleRate::SampleRate32730;
-    s32 audio_buffer_offset = 0;
+    SampleRate sample_rate = SampleRate::Rate32730;
+    u32 audio_buffer_offset = 0;
     u32 audio_buffer_size = 0;
     bool audio_buffer_loop = false;
+
+    std::shared_ptr<Frontend::Mic::Interface> mic;
 };
 
 void MIC_U::MapSharedMem(Kernel::HLERequestContext& ctx) {
@@ -291,6 +319,7 @@ MIC_U::MIC_U(Core::System& system)
         {0x00100040, &MIC_U::SetClientVersion, "SetClientVersion"},
     };
 
+    impl->mic = Frontend::GetCurrentMic();
     RegisterHandlers(functions);
 }
 

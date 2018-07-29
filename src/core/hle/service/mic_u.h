@@ -192,4 +192,7 @@ private:
 
 void InstallInterfaces(Core::System& system);
 
+void ChangeMicImpl();
+
 } // namespace Service::MIC
+
