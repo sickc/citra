@@ -5,6 +5,7 @@
 #include <memory>
 #include <QAudioDeviceInfo>
 #include <QtGlobal>
+#include "audio_core/cubeb_input.h"
 #include "audio_core/sink.h"
 #include "audio_core/sink_details.h"
 #include "citra_qt/configuration/configure_audio.h"
@@ -26,8 +27,8 @@ ConfigureAudio::ConfigureAudio(QWidget* parent)
 
     ui->input_device_combo_box->clear();
     ui->input_device_combo_box->addItem(tr("Default"));
-    for (const auto& device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
-        ui->input_device_combo_box->addItem(device.deviceName());
+    for (const auto& device : AudioCore::ListCubebInputDevices()) {
+        ui->input_device_combo_box->addItem(QString::fromStdString(device));
     }
 
     connect(ui->input_type_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -100,6 +101,7 @@ void ConfigureAudio::applyConfiguration() {
             .toStdString();
     Settings::values.volume =
         static_cast<float>(ui->volume_slider->sliderPosition()) / ui->volume_slider->maximum();
+    Frontend::RegisterMic(std::make_shared<AudioCore::CubebInput>());
 }
 
 void ConfigureAudio::updateAudioOutputDevices(int sink_index) {

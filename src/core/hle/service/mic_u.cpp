@@ -2,6 +2,8 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#pragma optimize("", off)
+
 #include "common/logging/log.h"
 #include "core/core.h"
 #include "core/frontend/mic.h"
@@ -45,6 +47,8 @@ struct MIC_U::Impl {
         if (shared_memory) {
             shared_memory->name = "MIC_U:shared_memory";
         }
+
+        mic->SetBackingMemory(shared_memory->GetPointer(), size);
 
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
@@ -115,6 +119,7 @@ struct MIC_U::Impl {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
         is_sampling = false;
+        mic->StopRecording();
         LOG_WARNING(Service_MIC, "(STUBBED) called");
     }
 
@@ -123,7 +128,7 @@ struct MIC_U::Impl {
         IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
         rb.Push(RESULT_SUCCESS);
         rb.Push<bool>(is_sampling);
-        LOG_DEBUG(Service_MIC, "");
+        LOG_WARNING(Service_MIC, "");
     }
 
     void GetBufferFullEvent(Kernel::HLERequestContext& ctx) {

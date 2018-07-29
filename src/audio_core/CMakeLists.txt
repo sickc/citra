@@ -2,6 +2,10 @@ add_library(audio_core STATIC
     audio_types.h
     codec.cpp
     codec.h
+    cubeb_input.cpp
+    cubeb_input.h
+    cubeb_sink.cpp
+    cubeb_sink.h
     dsp_interface.cpp
     dsp_interface.h
     hle/common.h
@@ -24,7 +28,6 @@ add_library(audio_core STATIC
     time_stretch.h
 
     $<$<BOOL:${SDL2_FOUND}>:sdl2_sink.cpp sdl2_sink.h>
-    $<$<BOOL:${ENABLE_CUBEB}>:cubeb_sink.cpp cubeb_sink.h>
 )
 
 create_target_directory_groups(audio_core)
