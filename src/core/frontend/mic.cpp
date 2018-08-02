@@ -16,7 +16,7 @@ void RegisterMic(std::shared_ptr<Mic::Interface> mic) {
 std::shared_ptr<Mic::Interface> GetCurrentMic() {
     if (!current_mic) {
         LOG_CRITICAL(Audio, "Using null mic!");
-        current_mic = std::make_shared<Mic::DefaultMic>();
+        current_mic = std::make_shared<Mic::NullMic>();
     }
     return current_mic;
 }

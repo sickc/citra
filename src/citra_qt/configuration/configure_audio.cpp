@@ -101,7 +101,24 @@ void ConfigureAudio::applyConfiguration() {
             .toStdString();
     Settings::values.volume =
         static_cast<float>(ui->volume_slider->sliderPosition()) / ui->volume_slider->maximum();
-    Frontend::RegisterMic(std::make_shared<AudioCore::CubebInput>());
+    u8 new_input_type = ui->input_type_combo_box->currentIndex();
+    if (Settings::values.mic_input_type != new_input_type) {
+        // TODO Sync mic settings, stop old mic if sampling, start new mic??
+        switch (new_input_type) {
+        case 0:
+            Frontend::RegisterMic(std::make_shared<Frontend::Mic::NullMic>());
+            break;
+        case 1:
+            Frontend::RegisterMic(std::make_shared<AudioCore::CubebInput>());
+            break;
+        case 2:
+            // TODO actual static input frontend
+            Frontend::RegisterMic(std::make_shared<Frontend::Mic::NullMic>());
+            break;
+        }
+    }
+    Settings::values.mic_input_type = new_input_type;
+    Settings::values.mic_input_device = ui->input_device_combo_box->currentText().toStdString();
 }
 
 void ConfigureAudio::updateAudioOutputDevices(int sink_index) {
@@ -116,7 +133,8 @@ void ConfigureAudio::updateAudioOutputDevices(int sink_index) {
 }
 
 void ConfigureAudio::updateAudioInputDevices(int index) {
-    // TODO: Don't hardcode this?
+    // TODO: Don't hardcode this to the index for "Real Device" without making it a constant
+    // somewhere
     ui->input_device_combo_box->setEnabled(index == 1);
 }
 

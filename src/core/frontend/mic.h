@@ -29,10 +29,16 @@ struct Parameters {
 class Interface {
 public:
     /// Starts the microphone. Called by Core
-    virtual void StartRecording(Parameters params) = 0;
+    virtual void StartSampling(Parameters params) = 0;
 
     /// Stops the microphone. Called by Core
-    virtual void StopRecording() = 0;
+    virtual void StopSampling() = 0;
+
+    Interface() = default;
+
+    Interface(const Interface& other)
+        : gain(other.gain), powered(other.powered), backing_memory(other.backing_memory),
+          backing_memory_size(other.backing_memory_size), parameters(other.parameters) {}
 
     /// Sets the backing memory that the mic should write raw samples into. Called by Core
     void SetBackingMemory(u8* pointer, u32 size) {
@@ -42,7 +48,28 @@ public:
 
     /// Adjusts the Parameters. Implementations should update the parameters field in addition to
     /// changing the mic to sample according to the new parameters. Called by Core
-    virtual void AdjustParameters(Parameters parameters) = 0;
+    virtual void AdjustSampleRate(u32 sample_rate) = 0;
+
+    /// Value from 0 - 100 to adjust the mic gain setting. Called by Core
+    virtual void SetGain(u8 mic_gain) {
+        gain = mic_gain;
+    }
+
+    u8 GetGain() const {
+        return gain;
+    }
+
+    void SetPower(bool power) {
+        powered = power;
+    }
+
+    bool GetPower() const {
+        return powered;
+    }
+
+    bool IsSampling() const {
+        return is_sampling;
+    }
 
     Parameters GetParameters() const {
         return parameters;
@@ -53,18 +80,24 @@ protected:
     u32 backing_memory_size;
 
     Parameters parameters;
+    u8 gain = 0;
+    bool is_sampling = false;
+    bool powered = false;
 };
 
-class DefaultMic final : public Interface {
+class NullMic final : public Interface {
 public:
-    void StartRecording(Parameters params) {
+    void StartSampling(Parameters params) override {
         parameters = params;
+        is_sampling = true;
     }
 
-    void StopRecording() {}
+    void StopSampling() override {
+        is_sampling = false;
+    }
 
-    void AdjustParameters(Parameters params) {
-        parameters = params;
+    void AdjustSampleRate(u32 sample_rate) override {
+        parameters.sample_rate = sample_rate;
     }
 };
 

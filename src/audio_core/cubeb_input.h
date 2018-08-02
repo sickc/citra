@@ -13,11 +13,11 @@ public:
     CubebInput();
     ~CubebInput();
 
-    void StartRecording(Frontend::Mic::Parameters params) override;
+    void StartSampling(Frontend::Mic::Parameters params) override;
 
-    void StopRecording() override;
+    void StopSampling() override;
 
-    void AdjustParameters(Frontend::Mic::Parameters params) override {}
+    void AdjustSampleRate(u32 params) override {}
 
 private:
     void ResetDevice() {}

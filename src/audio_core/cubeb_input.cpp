@@ -16,10 +16,12 @@ struct CubebInput::Impl {
     cubeb* ctx = nullptr;
     cubeb_stream* stream = nullptr;
 
+    bool looped_buffer;
     u8* buffer;
+    u32 buffer_size;
     u32 initial_offset;
     u32 offset;
-    u32 size;
+    u32 audio_buffer_size;
 
     static long DataCallback(cubeb_stream* stream, void* user_data, const void* input_buffer,
                              void* output_buffer, long num_frames);
@@ -45,7 +47,7 @@ CubebInput::~CubebInput() {
     cubeb_destroy(impl->ctx);
 }
 
-void CubebInput::StartRecording(Frontend::Mic::Parameters params) {
+void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
 
     if (params.sign == Frontend::Mic::Signedness::Unsigned) {
         LOG_ERROR(Audio,
@@ -57,9 +59,11 @@ void CubebInput::StartRecording(Frontend::Mic::Parameters params) {
     }
 
     impl->buffer = backing_memory;
-    impl->size = params.buffer_size;
+    impl->buffer_size = backing_memory_size;
+    impl->audio_buffer_size = params.buffer_size;
     impl->offset = params.buffer_offset;
     impl->initial_offset = params.buffer_offset;
+    impl->looped_buffer = params.buffer_loop;
 
     cubeb_devid input_device = nullptr;
     cubeb_stream_params input_params;
@@ -84,7 +88,7 @@ void CubebInput::StartRecording(Frontend::Mic::Parameters params) {
     cubeb_stream_start(impl->stream);
 }
 
-void CubebInput::StopRecording() {
+void CubebInput::StopSampling() {
     if (impl->stream) {
         cubeb_stream_stop(impl->stream);
     }
@@ -103,15 +107,31 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
         return 0;
     }
 
-    // TODO How does the 3DS handled looped input buffers
+    u64 total_written = 0;
     u64 to_write = num_frames;
-    if (to_write > impl->size - impl->offset) {
-        impl->offset = impl->initial_offset;
+    u64 remaining_space = impl->audio_buffer_size - impl->offset - sizeof(u32);
+    if (to_write > remaining_space) {
+        to_write = remaining_space;
     }
     std::memcpy(impl->buffer + impl->offset, data, to_write);
-    LOG_CRITICAL(Audio, "Writing len {} at offset {}", to_write, impl->offset);
     impl->offset += to_write;
-    return to_write;
+    total_written += to_write;
+
+    if (impl->looped_buffer) {
+        // TODO should this be reset to 0 or the initial_offset?
+        impl->offset = impl->initial_offset;
+        to_write = num_frames - to_write;
+        std::memcpy(impl->buffer + impl->offset, data, to_write);
+        impl->offset += to_write;
+        total_written += to_write;
+    }
+    // The last 4 bytes of the shared memory contains the latest offset
+    // so update that as well https://www.3dbrew.org/wiki/MIC_Shared_Memory
+    std::memcpy(impl->buffer + (impl->buffer_size - sizeof(u32)),
+                reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
+
+    // returning less than num_frames here signals cubeb to stop sampling
+    return total_written;
 }
 
 void CubebInput::Impl::StateCallback(cubeb_stream* stream, void* user_data, cubeb_state state) {}
@@ -120,8 +140,8 @@ std::vector<std::string> ListCubebInputDevices() {
     std::vector<std::string> device_list;
     cubeb* ctx;
 
-    if (cubeb_init(&ctx, "Citra Device Enumerator", nullptr) != CUBEB_OK) {
-        LOG_CRITICAL(Audio_Sink, "cubeb_init failed");
+    if (cubeb_init(&ctx, "Citra Input Device Enumerator", nullptr) != CUBEB_OK) {
+        LOG_CRITICAL(Audio, "cubeb_init failed");
         return {};
     }
 
