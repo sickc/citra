@@ -328,7 +328,9 @@ MIC_U::MIC_U(Core::System& system)
     RegisterHandlers(functions);
 }
 
-MIC_U::~MIC_U() = default;
+MIC_U::~MIC_U() {
+    impl->mic->StopSampling();
+}
 
 void InstallInterfaces(Core::System& system) {
     auto& service_manager = system.ServiceManager();

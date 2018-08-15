@@ -147,11 +147,6 @@
             <string>Real Device</string>
            </property>
           </item>
-          <item>
-           <property name="text">
-            <string>Static Noise</string>
-           </property>
-          </item>
          </widget>
         </item>
        </layout>

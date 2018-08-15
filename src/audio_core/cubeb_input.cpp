@@ -30,10 +30,9 @@ struct CubebInput::Impl {
 
 CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
     if (cubeb_init(&impl->ctx, "Citra Input", nullptr) != CUBEB_OK) {
-        LOG_CRITICAL(Audio, "cubeb_init failed");
+        LOG_ERROR(Audio, "cubeb_init failed! Mic will not work properly");
         return;
     }
-    LOG_CRITICAL(Audio, "CubebInput created!");
 }
 
 CubebInput::~CubebInput() {
@@ -41,14 +40,15 @@ CubebInput::~CubebInput() {
         return;
 
     if (cubeb_stream_stop(impl->stream) != CUBEB_OK) {
-        LOG_CRITICAL(Audio, "Error stopping cubeb stream");
+        LOG_ERROR(Audio, "Error stopping cubeb input stream.");
     }
 
     cubeb_destroy(impl->ctx);
 }
 
 void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
-
+    // Cubeb apparently only supports signed 16 bit PCM (and float32 which the 3ds doesn't support)
+    // TODO resample the input stream
     if (params.sign == Frontend::Mic::Signedness::Unsigned) {
         LOG_ERROR(Audio,
                   "Application requested unsupported unsigned pcm format. Falling back to signed");
@@ -62,7 +62,6 @@ void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
     impl->buffer_size = backing_memory_size;
     impl->audio_buffer_size = params.buffer_size;
     impl->offset = params.buffer_offset;
-    impl->initial_offset = params.buffer_offset;
     impl->looped_buffer = params.buffer_loop;
 
     cubeb_devid input_device = nullptr;
@@ -70,7 +69,6 @@ void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
     input_params.channels = 1;
     input_params.layout = CUBEB_LAYOUT_UNDEFINED;
     input_params.prefs = CUBEB_STREAM_PREF_NONE;
-    // Cubeb apparently only supports signed 16 bit PCM (and float32 which the 3ds doesn't support)
     input_params.format = CUBEB_SAMPLE_S16LE;
     input_params.rate = params.sample_rate;
 
@@ -94,6 +92,11 @@ void CubebInput::StopSampling() {
     }
 }
 
+void CubebInput::AdjustSampleRate(u32 sample_rate) {
+    // TODO This should restart the stream with the new sample rate
+    LOG_ERROR(Audio, "AdjustSampleRate unimplemented!");
+}
+
 long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const void* input_buffer,
                                     void* output_buffer, long num_frames) {
     Impl* impl = static_cast<Impl*>(user_data);
@@ -109,7 +112,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
 
     u64 total_written = 0;
     u64 to_write = num_frames;
-    u64 remaining_space = impl->audio_buffer_size - impl->offset - sizeof(u32);
+    u64 remaining_space = impl->audio_buffer_size - impl->offset;
     if (to_write > remaining_space) {
         to_write = remaining_space;
     }
@@ -117,8 +120,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     impl->offset += to_write;
     total_written += to_write;
 
-    if (impl->looped_buffer) {
-        // TODO should this be reset to 0 or the initial_offset?
+    if (impl->looped_buffer && num_frames > total_written) {
         impl->offset = impl->initial_offset;
         to_write = num_frames - to_write;
         std::memcpy(impl->buffer + impl->offset, data, to_write);

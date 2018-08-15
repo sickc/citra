@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "core/frontend/mic.h"
 
 namespace AudioCore {
@@ -17,10 +19,9 @@ public:
 
     void StopSampling() override;
 
-    void AdjustSampleRate(u32 params) override {}
+    void AdjustSampleRate(u32 sample_rate) override;
 
 private:
-    void ResetDevice() {}
     struct Impl;
     std::unique_ptr<Impl> impl;
 };

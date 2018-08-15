@@ -9,6 +9,7 @@
 #include "audio_core/sink.h"
 #include "audio_core/sink_details.h"
 #include "citra_qt/configuration/configure_audio.h"
+#include "core/core.h"
 #include "core/settings.h"
 #include "ui_configure_audio.h"
 
@@ -33,6 +34,9 @@ ConfigureAudio::ConfigureAudio(QWidget* parent)
 
     connect(ui->input_type_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             &ConfigureAudio::updateAudioInputDevices);
+
+    ui->input_type_combo_box->setEnabled(!Core::System::GetInstance().IsPoweredOn());
+    ui->input_device_combo_box->setEnabled(!Core::System::GetInstance().IsPoweredOn());
 
     this->setConfiguration();
     connect(ui->output_sink_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -101,23 +105,7 @@ void ConfigureAudio::applyConfiguration() {
             .toStdString();
     Settings::values.volume =
         static_cast<float>(ui->volume_slider->sliderPosition()) / ui->volume_slider->maximum();
-    u8 new_input_type = ui->input_type_combo_box->currentIndex();
-    if (Settings::values.mic_input_type != new_input_type) {
-        // TODO Sync mic settings, stop old mic if sampling, start new mic??
-        switch (new_input_type) {
-        case 0:
-            Frontend::RegisterMic(std::make_shared<Frontend::Mic::NullMic>());
-            break;
-        case 1:
-            Frontend::RegisterMic(std::make_shared<AudioCore::CubebInput>());
-            break;
-        case 2:
-            // TODO actual static input frontend
-            Frontend::RegisterMic(std::make_shared<Frontend::Mic::NullMic>());
-            break;
-        }
-    }
-    Settings::values.mic_input_type = new_input_type;
+    Settings::values.mic_input_type = ui->input_type_combo_box->currentIndex();
     Settings::values.mic_input_device = ui->input_device_combo_box->currentText().toStdString();
 }
 
@@ -135,7 +123,8 @@ void ConfigureAudio::updateAudioOutputDevices(int sink_index) {
 void ConfigureAudio::updateAudioInputDevices(int index) {
     // TODO: Don't hardcode this to the index for "Real Device" without making it a constant
     // somewhere
-    ui->input_device_combo_box->setEnabled(index == 1);
+    ui->input_device_combo_box->setEnabled(index == 1 &&
+                                           !Core::System::GetInstance().IsPoweredOn());
 }
 
 void ConfigureAudio::retranslateUi() {
