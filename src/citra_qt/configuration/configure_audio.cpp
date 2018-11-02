@@ -49,7 +49,7 @@ void ConfigureAudio::setConfiguration() {
     setOutputSinkFromSinkID();
 
     // The device list cannot be pre-populated (nor listed) until the output sink is known.
-    updateAudioDevices(ui->output_sink_combo_box->currentIndex());
+    updateAudioOutputDevices(ui->output_sink_combo_box->currentIndex());
 
     setAudioDeviceFromDeviceID();
 

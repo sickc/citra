@@ -228,14 +228,13 @@ struct MIC_U::Impl {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(RESULT_SUCCESS);
     }
-
     Kernel::SharedPtr<Kernel::Event> buffer_full_event =
-        Kernel::Event::Create(Kernel::ResetType::OneShot, "MIC_U::buffer_full_event");
+        Core::System::GetInstance().Kernel().CreateEvent(Kernel::ResetType::OneShot,
+                                                         "MIC_U::buffer_full_event");
     Kernel::SharedPtr<Kernel::SharedMemory> shared_memory;
     u32 client_version = 0;
     bool allow_shell_closed = false;
     bool clamp = false;
-
     std::shared_ptr<Frontend::Mic::Interface> mic;
 };
 
