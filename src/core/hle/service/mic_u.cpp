@@ -229,8 +229,7 @@ struct MIC_U::Impl {
         rb.Push(RESULT_SUCCESS);
     }
 
-    Kernel::SharedPtr<Kernel::Event> buffer_full_event =
-        Kernel::Event::Create(Kernel::ResetType::OneShot, "MIC_U::buffer_full_event");
+    Kernel::SharedPtr<Kernel::Event> buffer_full_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "MIC_U::buffer_full_event");
     Kernel::SharedPtr<Kernel::SharedMemory> shared_memory;
     u32 client_version = 0;
     bool allow_shell_closed = false;
