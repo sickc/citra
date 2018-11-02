@@ -49,7 +49,7 @@ void ConfigureAudio::setConfiguration() {
     setOutputSinkFromSinkID();
 
     // The device list cannot be pre-populated (nor listed) until the output sink is known.
-    updateAudioDevices(ui->output_sink_combo_box->currentIndex());
+    updateAudioOutputDevices(ui->output_sink_combo_box->currentIndex());
 
     setAudioDeviceFromDeviceID();
 
@@ -125,17 +125,6 @@ void ConfigureAudio::updateAudioInputDevices(int index) {
     // somewhere
     ui->input_device_combo_box->setEnabled(index == 1 &&
                                            !Core::System::GetInstance().IsPoweredOn());
-}
-
-void ConfigureAudio::updateAudioDevices(int sink_index) {
-    ui->audio_device_combo_box->clear();
-    ui->audio_device_combo_box->addItem(AudioCore::auto_device_name);
-
-    const std::string sink_id = ui->output_sink_combo_box->itemText(sink_index).toStdString();
-    const std::vector<std::string> device_list = AudioCore::GetSinkDetails(sink_id).list_devices();
-    for (const auto& device : device_list) {
-        ui->audio_device_combo_box->addItem(QString::fromStdString(device));
-    }
 }
 
 void ConfigureAudio::retranslateUi() {
