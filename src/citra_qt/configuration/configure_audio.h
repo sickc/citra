@@ -24,6 +24,7 @@ public:
 public slots:
     void updateAudioOutputDevices(int sink_index);
     void updateAudioInputDevices(int index);
+    void updateAudioDevices(int sink_index);
 
 private:
     void setConfiguration();

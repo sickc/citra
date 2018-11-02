@@ -127,6 +127,17 @@ void ConfigureAudio::updateAudioInputDevices(int index) {
                                            !Core::System::GetInstance().IsPoweredOn());
 }
 
+void ConfigureAudio::updateAudioDevices(int sink_index) {
+    ui->audio_device_combo_box->clear();
+    ui->audio_device_combo_box->addItem(AudioCore::auto_device_name);
+
+    const std::string sink_id = ui->output_sink_combo_box->itemText(sink_index).toStdString();
+    const std::vector<std::string> device_list = AudioCore::GetSinkDetails(sink_id).list_devices();
+    for (const auto& device : device_list) {
+        ui->audio_device_combo_box->addItem(QString::fromStdString(device));
+    }
+}
+
 void ConfigureAudio::retranslateUi() {
     ui->retranslateUi(this);
 }
