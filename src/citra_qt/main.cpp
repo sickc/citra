@@ -1319,13 +1319,12 @@ void GMainWindow::OnConfigure() {
     ConfigureDialog configureDialog(this, hotkey_registry);
     connect(&configureDialog, &ConfigureDialog::languageChanged, this,
             &GMainWindow::OnLanguageChanged);
-    connect(&configureDialog, &ConfigureDialog::UpdateHotkeys, this,
-            [this]() { InitializeHotkeys(); });
     auto old_theme = UISettings::values.theme;
     const bool old_discord_presence = UISettings::values.enable_discord_presence;
     auto result = configureDialog.exec();
     if (result == QDialog::Accepted) {
         configureDialog.applyConfiguration(hotkey_registry);
+        InitializeHotkeys();
         if (UISettings::values.theme != old_theme)
             UpdateUITheme();
         if (UISettings::values.enable_discord_presence != old_discord_presence)
