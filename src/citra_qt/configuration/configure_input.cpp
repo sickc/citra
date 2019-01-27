@@ -12,6 +12,7 @@
 #include "citra_qt/configuration/config.h"
 #include "citra_qt/configuration/configure_input.h"
 #include "citra_qt/configuration/configure_motion_touch.h"
+#include "citra_qt/sbs_3d_ui.h"
 #include "common/param_package.h"
 
 const std::array<std::string, ConfigureInput::ANALOG_SUB_BUTTONS_NUM>
@@ -207,9 +208,10 @@ ConfigureInput::ConfigureInput(QWidget* parent)
                     });
         }
         connect(analog_map_stick[analog_id], &QPushButton::released, [=]() {
-            QMessageBox::information(this, tr("Information"),
-                                     tr("After pressing OK, first move your joystick horizontally, "
-                                        "and then vertically."));
+            QMessageBox3D::information(
+                this, tr("Information"),
+                tr("After pressing OK, first move your joystick horizontally, "
+                   "and then vertically."));
             handleClick(analog_map_stick[analog_id],
                         [=](const Common::ParamPackage& params) {
                             analogs_param[analog_id] = params;
@@ -447,9 +449,9 @@ void ConfigureInput::NewProfile() {
 }
 
 void ConfigureInput::DeleteProfile() {
-    const auto answer = QMessageBox::question(
+    const auto answer = QMessageBox3D::question(
         this, tr("Delete Profile"), tr("Delete profile %1?").arg(ui->profile->currentText()));
-    if (answer != QMessageBox::Yes) {
+    if (answer != QMessageBox3D::Yes) {
         return;
     }
     const int index = ui->profile->currentIndex();

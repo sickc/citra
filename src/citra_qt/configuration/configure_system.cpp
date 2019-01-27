@@ -4,6 +4,7 @@
 
 #include <QMessageBox>
 #include "citra_qt/configuration/configure_system.h"
+#include "citra_qt/sbs_3d_ui.h"
 #include "citra_qt/ui_settings.h"
 #include "core/core.h"
 #include "core/hle/service/cfg/cfg.h"
@@ -402,14 +403,14 @@ void ConfigureSystem::UpdateInitTime(int init_clock) {
 }
 
 void ConfigureSystem::RefreshConsoleID() {
-    QMessageBox::StandardButton reply;
+    QMessageBox3D::StandardButton reply;
     QString warning_text = tr("This will replace your current virtual 3DS with a new one. "
                               "Your current virtual 3DS will not be recoverable. "
                               "This might have unexpected effects in games. This might fail, "
                               "if you use an outdated config savegame. Continue?");
-    reply = QMessageBox::critical(this, tr("Warning"), warning_text,
-                                  QMessageBox::No | QMessageBox::Yes);
-    if (reply == QMessageBox::No)
+    reply = QMessageBox3D::critical(this, tr("Warning"), warning_text,
+                                    QMessageBox3D::No | QMessageBox3D::Yes);
+    if (reply == QMessageBox3D::No)
         return;
     u32 random_number;
     u64 console_id;

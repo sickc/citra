@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QtConcurrent/qtconcurrentrun.h>
 #include "citra_qt/compatdb.h"
+#include "citra_qt/sbs_3d_ui.h"
 #include "common/telemetry.h"
 #include "core/core.h"
 #include "ui_compatdb.h"
@@ -68,8 +69,8 @@ void CompatDB::Submit() {
 
 void CompatDB::OnTestcaseSubmitted() {
     if (!testcase_watcher.result()) {
-        QMessageBox::critical(this, tr("Communication error"),
-                              tr("An error occured while sending the Testcase"));
+        QMessageBox3D::critical(this, tr("Communication error"),
+                                tr("An error occured while sending the Testcase"));
         button(NextButton)->setEnabled(true);
         button(NextButton)->setText(tr("Next"));
         button(QWizard::CancelButton)->setVisible(true);

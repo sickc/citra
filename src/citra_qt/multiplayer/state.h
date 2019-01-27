@@ -37,6 +37,7 @@ public:
     }
 
     void retranslateUi();
+    void BringWidgetToFront(QWidget* widget);
 
 public slots:
     void OnNetworkStateChanged(const Network::RoomMember::State& state);

@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QtConcurrent/QtConcurrentRun>
 #include "citra_qt/configuration/configure_web.h"
+#include "citra_qt/sbs_3d_ui.h"
 #include "citra_qt/ui_settings.h"
 #include "core/settings.h"
 #include "core/telemetry_session.h"
@@ -65,9 +66,9 @@ void ConfigureWeb::applyConfiguration() {
         Settings::values.citra_username = ui->edit_username->text().toStdString();
         Settings::values.citra_token = ui->edit_token->text().toStdString();
     } else {
-        QMessageBox::warning(this, tr("Username and token not verified"),
-                             tr("Username and token were not verified. The changes to your "
-                                "username and/or token have not been saved."));
+        QMessageBox3D::warning(this, tr("Username and token not verified"),
+                               tr("Username and token were not verified. The changes to your "
+                                  "username and/or token have not been saved."));
     }
 }
 
@@ -108,7 +109,7 @@ void ConfigureWeb::OnLoginVerified() {
     } else {
         ui->label_username_verified->setPixmap(QIcon::fromTheme("failed").pixmap(16));
         ui->label_token_verified->setPixmap(QIcon::fromTheme("failed").pixmap(16));
-        QMessageBox::critical(
+        QMessageBox3D::critical(
             this, tr("Verification failed"),
             tr("Verification failed. Check that you have entered your username and token "
                "correctly, and that your internet connection is working."));

@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include "citra_qt/configuration/configure_motion_touch.h"
+#include "citra_qt/sbs_3d_ui.h"
 #include "core/settings.h"
 #include "input_common/main.h"
 #include "ui_configure_motion_touch.h"
@@ -222,13 +223,13 @@ void ConfigureMotionTouch::closeEvent(QCloseEvent* event) {
 void ConfigureMotionTouch::ShowUDPTestResult(bool result) {
     udp_test_in_progress = false;
     if (result) {
-        QMessageBox::information(this, tr("Test Successful"),
-                                 tr("Successfully received data from the server."));
+        QMessageBox3D::information(this, tr("Test Successful"),
+                                   tr("Successfully received data from the server."));
     } else {
-        QMessageBox::warning(this, tr("Test Failed"),
-                             tr("Could not receive valid data from the server.<br>Please verify "
-                                "that the server is set up correctly and "
-                                "the address and port are correct."));
+        QMessageBox3D::warning(this, tr("Test Failed"),
+                               tr("Could not receive valid data from the server.<br>Please verify "
+                                  "that the server is set up correctly and "
+                                  "the address and port are correct."));
     }
     ui->udp_test->setEnabled(true);
     ui->udp_test->setText(tr("Test"));
@@ -236,9 +237,9 @@ void ConfigureMotionTouch::ShowUDPTestResult(bool result) {
 
 bool ConfigureMotionTouch::CanCloseDialog() {
     if (udp_test_in_progress) {
-        QMessageBox::warning(this, tr("Citra"),
-                             tr("UDP Test or calibration configuration is in progress.<br>Please "
-                                "wait for them to finish."));
+        QMessageBox3D::warning(this, tr("Citra"),
+                               tr("UDP Test or calibration configuration is in progress.<br>Please "
+                                  "wait for them to finish."));
         return false;
     }
     return true;
