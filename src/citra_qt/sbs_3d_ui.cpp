@@ -10,7 +10,9 @@
 #include "citra_qt/sbs_3d_ui.h"
 #include "core/settings.h"
 
-void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent) {
+#define PARALLAX 8
+
+void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent, int offset) {
     // move dialog to centre of left eye in SBS 3D mode
     if (Settings::values.toggle_3d) {
         dialog->adjustSize();
@@ -18,7 +20,21 @@ void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent) {
         screen_geometry.setWidth(screen_geometry.width() / 2);
         int dialog_width = std::min(dialog->width(), screen_geometry.width());
         int dialog_height = std::min(dialog->height(), screen_geometry.height());
-        dialog->move(screen_geometry.center().x() - dialog_width / 2,
+        dialog->move(screen_geometry.center().x() + offset - dialog_width / 2,
+                     screen_geometry.center().y() - dialog_height / 2);
+    }
+}
+
+void MoveDialogToRightEye(QWidget* dialog, QWidget* parent, int offset) {
+    // move dialog to centre of right eye in SBS 3D mode
+    if (Settings::values.toggle_3d) {
+        dialog->adjustSize();
+        QRect screen_geometry = parent->geometry();
+        screen_geometry.setWidth(screen_geometry.width() / 2);
+        int dialog_width = std::min(dialog->width(), screen_geometry.width());
+        int dialog_height = std::min(dialog->height(), screen_geometry.height());
+        dialog->move(screen_geometry.width() + screen_geometry.center().x() + offset -
+                         dialog_width / 2,
                      screen_geometry.center().y() - dialog_height / 2);
     }
 }
@@ -26,12 +42,16 @@ void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent) {
 QMessageBox::StandardButton QMessageBox3D::showNewMessageBox(
     QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    QMessageBox msg_box(icon, title, text, buttons, parent);
-    msg_box.setDefaultButton(defaultButton);
-    MoveDialogToLeftEye(&msg_box, parent);
-    if (msg_box.exec() == -1)
+    QMessageBox left_box(icon, title, text, buttons, parent);
+    QMessageBox right_box(icon, title, text, buttons, parent);
+    left_box.setDefaultButton(defaultButton);
+    right_box.setDefaultButton(defaultButton);
+    MoveDialogToLeftEye(&left_box, parent, +PARALLAX);
+    MoveDialogToRightEye(&right_box, parent, -PARALLAX);
+    right_box.show();
+    if (left_box.exec() == -1)
         return QMessageBox::Cancel;
-    return msg_box.standardButton(msg_box.clickedButton());
+    return left_box.standardButton(left_box.clickedButton());
 }
 
 QMessageBox::StandardButton QMessageBox3D::information(QWidget* parent, const QString& title,

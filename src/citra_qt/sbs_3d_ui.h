@@ -7,7 +7,8 @@
 #include <QMessageBox>
 #include <QWidget>
 
-void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent);
+void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent, int offset = 0);
+void MoveDialogToRightEye(QWidget* dialog, QWidget* parent, int offset = 0);
 
 class QMessageBox3D : public QMessageBox {
     Q_OBJECT
