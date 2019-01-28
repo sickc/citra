@@ -146,6 +146,7 @@
      <addaction name="action_Record_Movie"/>
      <addaction name="action_Play_Movie"/>
      <addaction name="action_Stop_Recording_Playback"/>
+     <addaction name="action_Enable_Framedump"/>
     </widget>
     <widget class="QMenu" name="menu_Frame_Advance">
      <property name="title">
@@ -307,6 +308,17 @@
    </property>
    <property name="text">
     <string>Stop Recording / Playback</string>
+   </property>
+  </action>
+  <action name="action_Enable_Framedump">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Enable Framedumping</string>
    </property>
   </action>
   <action name="action_Enable_Frame_Advancing">

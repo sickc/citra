@@ -1,42 +1,25 @@
-**BEFORE FILING AN ISSUE, READ THE RELEVANT SECTION IN THE [CONTRIBUTING](https://github.com/citra-emu/citra/wiki/Contributing#reporting-issues) FILE!!!**
-
-Citra
+Citra Framedump
 ==============
-[![Travis CI Build Status](https://travis-ci.org/citra-emu/citra.svg?branch=master)](https://travis-ci.org/citra-emu/citra)
-[![AppVeyor CI Build Status](https://ci.appveyor.com/api/projects/status/sdf1o4kh3g1e68m9?svg=true)](https://ci.appveyor.com/project/bunnei/citra)
-[![Bitrise CI Build Status](https://app.bitrise.io/app/4ccd8e5720f0d13b/status.svg?token=H32TmbCwxb3OQ-M66KbAyw&branch=master)](https://app.bitrise.io/app/4ccd8e5720f0d13b)
+This is a fork of Citra emulator with experimental framedumping support, based on JSelby's yuzu "ffmpeg hack".
 
-Citra is an experimental open-source Nintendo 3DS emulator/debugger written in C++. It is written with portability in mind, with builds actively maintained for Windows, Linux and macOS.
+Requirements for framedumping: OGL as renderer and DSP HLE. SWR and DSP LLE support is comming later(or never). You must also use the QT frontend, SDL2/CLI won't work. FFMPEG executable must be in the directory with citra-qt.exe and named "ffmpeg.exe"(if you are using a shared build of ffmpeg, then you need to copy all of it's dll here too). To start check "Enable Framedumping" in Tools->Movie.
+The encoded video resolution is hardcoded to 1800x1080 in renderer_opengl.cpp, but the resolution of the rendered image depends on the settings.
 
-Citra emulates a subset of 3DS hardware and therefore is useful for running/debugging homebrew applications, and it is also able to run many commercial games! Some of these do not run at a playable state, but we are working every day to advance the project forward. (Playable here means compatibility of at least "Okay" on our [game compatibility list](https://citra-emu.org/game).)
+Visit Citra emulator's [website](https://citra-emu.org/)
+Visit Citra's [central GitHub repo](https://github.com/citra-emu/citra)
 
-Citra is licensed under the GPLv2 (or any later version). Refer to the license.txt file included. Please read the [FAQ](https://citra-emu.org/wiki/faq/) before getting started with the project.
-
-Check out our [website](https://citra-emu.org/)!
-
-For development discussion, please join us at #citra-dev on freenode.
-
-### Development
-
-Most of the development happens on GitHub. It's also where [our central repository](https://github.com/citra-emu/citra) is hosted.
-
-If you want to contribute please take a look at the [Contributor's Guide](CONTRIBUTING.md) and [Developer Information](https://github.com/citra-emu/citra/wiki/Developer-Information). You should as well contact any of the developers in the forum in order to know about the current state of the emulator because the [TODO list](https://docs.google.com/document/d/1SWIop0uBI9IW8VGg97TAtoT_CHNoP42FzYmvG1F4QDA) isn't maintained anymore.
-
-If you want to contribute to the user interface translation, please checkout [citra project on transifex](https://www.transifex.com/citra/citra). We centralize the translation work there, and periodically upstream translation.
-
-### Building
+### How do I build this?
 
 * __Windows__: [Windows Build](https://github.com/citra-emu/citra/wiki/Building-For-Windows)
 * __Linux__: [Linux Build](https://github.com/citra-emu/citra/wiki/Building-For-Linux)
 * __macOS__: [macOS Build](https://github.com/citra-emu/citra/wiki/Building-for-macOS)
 
+I'll also provide builds of my own in the Buils section(some may be based on this merged with Citra-Canary to get more features and performance)
 
-### Support
-We happily accept monetary donations or donated games and hardware. Please see our [donations page](https://citra-emu.org/donate/) for more information on how you can contribute to Citra. Any donations received will go towards things like:
-* 3DS consoles for developers to explore the hardware
-* 3DS games for testing
-* Any equipment required for homebrew
-* Infrastructure setup
-* Eventually 3D displays to get proper 3D output working
+### TODO/Plans List
 
-We also more than gladly accept used 3DS consoles, preferably ones with firmware 4.5 or lower! If you would like to give yours away, don't hesitate to join our IRC channel #citra on [Freenode](http://webchat.freenode.net/?channels=citra) and talk to neobrain or bunnei. Mind you, IRC is slow-paced, so it might be a while until people reply. If you're in a hurry you can just leave contact details in the channel or via private message and we'll get back to you.
+* Implement lower screen recording by writing it to another video stream(and maybe stereoscopic recording)
+* Find a way to encode video without the use of extrnal executables and get rid of platfor specific code(aka completely redo the whole framedump.cpp)
+* Make a nice GUI for altering encoding settings(and unhardcode the encoding resolution) with options for different layout and such
+* Code formatting and compliance with Citra's contribution guidelines
+* PR it to the main Citra repo(and hopefully get it merged)

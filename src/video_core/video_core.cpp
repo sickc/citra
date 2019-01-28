@@ -23,6 +23,10 @@ std::atomic<bool> g_hw_shader_enabled;
 std::atomic<bool> g_hw_shader_accurate_gs;
 std::atomic<bool> g_hw_shader_accurate_mul;
 std::atomic<bool> g_renderer_bg_color_update_requested;
+// Framedump
+std::atomic<bool> g_renderer_framedump_enabled;
+Layout::FramebufferLayout g_framedump_upper_framebuffer_layout;
+Layout::FramebufferLayout g_framedump_lower_framebuffer_layout;
 // Screenshot
 std::atomic<bool> g_renderer_screenshot_requested;
 void* g_screenshot_bits;

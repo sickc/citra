@@ -57,6 +57,7 @@
 #include "core/core.h"
 #include "core/file_sys/archive_extsavedata.h"
 #include "core/file_sys/archive_source_sd_savedata.h"
+#include "core/framedump.h"
 #include "core/frontend/applets/default_applets.h"
 #include "core/gdbstub/gdbstub.h"
 #include "core/hle/service/fs/archive.h"
@@ -65,6 +66,7 @@
 #include "core/movie.h"
 #include "core/settings.h"
 #include "game_list_p.h"
+#include "video_core/video_core.h"
 
 #ifdef USE_DISCORD_PRESENCE
 #include "citra_qt/discord_impl.h"
@@ -584,6 +586,13 @@ void GMainWindow::ConnectMenuEvents() {
     connect(ui.action_Play_Movie, &QAction::triggered, this, &GMainWindow::OnPlayMovie);
     connect(ui.action_Stop_Recording_Playback, &QAction::triggered, this,
             &GMainWindow::OnStopRecordingPlayback);
+    connect(ui.action_Enable_Framedump, &QAction::triggered, this, [this] {
+        if (!ui.action_Enable_Framedump->isChecked())
+        {
+            Capture::get_instance()->Stop();
+        }
+        VideoCore::g_renderer_framedump_enabled.store(ui.action_Enable_Framedump->isChecked());
+    });
     connect(ui.action_Enable_Frame_Advancing, &QAction::triggered, this, [this] {
         if (emulation_running) {
             Core::System::GetInstance().frame_limiter.SetFrameAdvancing(
@@ -891,6 +900,8 @@ void GMainWindow::ShutdownGame() {
     ui.action_Load_Amiibo->setEnabled(false);
     ui.action_Remove_Amiibo->setEnabled(false);
     ui.action_Report_Compatibility->setEnabled(false);
+    ui.action_Enable_Framedump->setEnabled(true);
+    ui.action_Enable_Framedump->setChecked(false);
     ui.action_Enable_Frame_Advancing->setEnabled(false);
     ui.action_Enable_Frame_Advancing->setChecked(false);
     ui.action_Advance_Frame->setEnabled(false);
@@ -1181,6 +1192,7 @@ void GMainWindow::OnStartGame() {
     ui.action_Cheats->setEnabled(true);
     ui.action_Load_Amiibo->setEnabled(true);
     ui.action_Report_Compatibility->setEnabled(true);
+    ui.action_Enable_Framedump->setEnabled(true);
     ui.action_Enable_Frame_Advancing->setEnabled(true);
     ui.action_Capture_Screenshot->setEnabled(true);
 

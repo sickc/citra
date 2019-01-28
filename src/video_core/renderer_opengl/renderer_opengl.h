@@ -54,7 +54,7 @@ private:
     void InitOpenGLObjects();
     void ConfigureFramebufferTexture(TextureInfo& texture,
                                      const GPU::Regs::FramebufferConfig& framebuffer);
-    void DrawScreens(const Layout::FramebufferLayout& layout);
+    void DrawScreens(const Layout::FramebufferLayout& layout, bool incrementFrame);
     void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h);
     void UpdateFramerate();
 
@@ -70,6 +70,7 @@ private:
     OGLVertexArray vertex_array;
     OGLBuffer vertex_buffer;
     OGLProgram shader;
+    OGLFramebuffer framedump_framebuffer;
     OGLFramebuffer screenshot_framebuffer;
 
     /// Display information for top and bottom screens respectively

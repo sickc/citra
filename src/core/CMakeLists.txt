@@ -82,6 +82,8 @@ add_library(core STATIC
     file_sys/ticket.h
     file_sys/title_metadata.cpp
     file_sys/title_metadata.h
+    framedump.cpp
+    framedump.h
     frontend/applets/default_applets.cpp
     frontend/applets/default_applets.h
     frontend/applets/swkbd.cpp

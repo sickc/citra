@@ -31,6 +31,10 @@ extern std::atomic<bool> g_hw_shader_enabled;
 extern std::atomic<bool> g_hw_shader_accurate_gs;
 extern std::atomic<bool> g_hw_shader_accurate_mul;
 extern std::atomic<bool> g_renderer_bg_color_update_requested;
+// Framedump
+extern std::atomic<bool> g_renderer_framedump_enabled; //TODO: Move this variable to core
+extern Layout::FramebufferLayout g_framedump_upper_framebuffer_layout; //TODO: Make this and the one below not global later
+extern Layout::FramebufferLayout g_framedump_lower_framebuffer_layout;
 // Screenshot
 extern std::atomic<bool> g_renderer_screenshot_requested;
 extern void* g_screenshot_bits;

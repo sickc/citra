@@ -15,6 +15,8 @@
 #include "common/logging/log.h"
 #include "core/core.h"
 #include "core/core_timing.h"
+#include "core/framedump.h"
+#include "video_core/video_core.h"
 
 using InterruptType = Service::DSP::DSP_DSP::InterruptType;
 using Service::DSP::DSP_DSP;
@@ -346,6 +348,10 @@ bool DspHle::Impl::Tick() {
     current_frame = GenerateCurrentFrame();
 
     parent.OutputFrame(current_frame);
+    if (!VideoCore::g_renderer_framedump_enabled) return true;
+    for (auto samplearray : current_frame) {
+        Capture::get_instance()->EncodeAudio(samplearray.data(), samplearray.size());
+	}
 
     return true;
 }

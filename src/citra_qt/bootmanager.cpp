@@ -10,6 +10,7 @@
 #include "common/scm_rev.h"
 #include "core/3ds.h"
 #include "core/core.h"
+#include "core/framedump.h"
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
@@ -360,6 +361,7 @@ void GRenderWindow::OnEmulationStarting(EmuThread* emu_thread) {
 }
 
 void GRenderWindow::OnEmulationStopping() {
+    Capture::get_instance()->Stop();
     emu_thread = nullptr;
     child->EnablePainting();
 }

@@ -12,6 +12,7 @@
 #include "common/logging/log.h"
 #include "core/core.h"
 #include "core/core_timing.h"
+#include "core/framedump.h"
 #include "core/frontend/emu_window.h"
 #include "core/hw/gpu.h"
 #include "core/hw/hw.h"
@@ -140,6 +141,42 @@ void RendererOpenGL::SwapBuffers() {
         }
     }
 
+    if (VideoCore::g_renderer_framedump_enabled) {
+        // Draw this frame to the framedump buffers and send it the recorder
+		//TODO: Implement lower screen recording by introducing a second pipe to framedump.cpp and rendering the lower screen separately
+        auto height = (u64)1080; // TODO: Remove hardcoded video recording resolution(the resolution of the rendered image is still dependent on the settings value)
+        auto width = (u64)1800;
+        Capture::get_instance()->Start(width, height);
+        std::vector<u8> tex_buffer(static_cast<unsigned long long int>(width * height * 4));
+        framedump_framebuffer.Create();
+        GLuint old_read_fb = state.draw.read_framebuffer;
+        GLuint old_draw_fb = state.draw.draw_framebuffer;
+        state.draw.read_framebuffer = state.draw.draw_framebuffer = framedump_framebuffer.handle;
+        state.Apply();
+
+        Layout::FramebufferLayout layout{Layout::SingleFrameLayout(
+            width, height, false)}; 
+
+        GLuint renderbuffer;
+        glGenRenderbuffers(1, &renderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, layout.width, layout.height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
+                                  renderbuffer);
+
+        DrawScreens(layout, false);
+
+        glReadPixels(0, 0, layout.width, layout.height, GL_BGRA, GL_UNSIGNED_BYTE,
+                     tex_buffer.data());
+
+        framedump_framebuffer.Release();
+        state.draw.read_framebuffer = old_read_fb;
+        state.draw.draw_framebuffer = old_draw_fb;
+        state.Apply();
+        glDeleteRenderbuffers(1, &renderbuffer);
+        Capture::get_instance()->EncodeVideo(tex_buffer.data(), tex_buffer.size());
+    }
+
     if (VideoCore::g_renderer_screenshot_requested) {
         // Draw this frame to the screenshot framebuffer
         screenshot_framebuffer.Create();
@@ -157,7 +194,7 @@ void RendererOpenGL::SwapBuffers() {
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
                                   renderbuffer);
 
-        DrawScreens(layout);
+        DrawScreens(layout, false);
 
         glReadPixels(0, 0, layout.width, layout.height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
                      VideoCore::g_screenshot_bits);
@@ -172,7 +209,7 @@ void RendererOpenGL::SwapBuffers() {
         VideoCore::g_renderer_screenshot_requested = false;
     }
 
-    DrawScreens(render_window.GetFramebufferLayout());
+    DrawScreens(render_window.GetFramebufferLayout(), true);
 
     Core::System::GetInstance().perf_stats.EndSystemFrame();
 
@@ -418,7 +455,7 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
 /**
  * Draws the emulated screens to the emulator window.
  */
-void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
+void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout, bool incrementFrame) {
     if (VideoCore::g_renderer_bg_color_update_requested.exchange(false)) {
         // Update background color before drawing
         glClearColor(Settings::values.bg_red, Settings::values.bg_green, Settings::values.bg_blue,
@@ -470,7 +507,7 @@ void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
         }
     }
 
-    m_current_frame++;
+    if (incrementFrame) m_current_frame++; //TODO: figure out if incrementing this counter many more times per emulated system frame will break something
 }
 
 /// Updates the framerate
