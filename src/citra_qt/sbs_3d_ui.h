@@ -28,5 +28,5 @@ public:
     static QMessageBox3D::StandardButton showNewMessageBox(
         QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
-    int exec();
+    int exec() override;
 };

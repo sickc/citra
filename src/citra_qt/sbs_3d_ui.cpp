@@ -3,40 +3,40 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
-#include <glad/glad.h>
 #define QT_NO_OPENGL
 #include <QMessageBox>
-#include <QtWidgets>
+#include <QWidget>
 #include "citra_qt/sbs_3d_ui.h"
 #include "core/settings.h"
 
 #define PARALLAX 8
 
+// move dialog to centre of left eye in SBS 3D mode
 void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent, int offset) {
-    // move dialog to centre of left eye in SBS 3D mode
-    if (Settings::values.toggle_3d) {
-        dialog->adjustSize();
-        QRect screen_geometry = parent->geometry();
-        screen_geometry.setWidth(screen_geometry.width() / 2);
-        int dialog_width = std::min(dialog->width(), screen_geometry.width());
-        int dialog_height = std::min(dialog->height(), screen_geometry.height());
-        dialog->move(screen_geometry.center().x() + offset - dialog_width / 2,
-                     screen_geometry.center().y() - dialog_height / 2);
+    if (!Settings::values.toggle_3d) {
+        return;
     }
+    dialog->adjustSize();
+    QRect screen_geometry = parent->geometry();
+    screen_geometry.setWidth(screen_geometry.width() / 2);
+    int dialog_width = std::min(dialog->width(), screen_geometry.width());
+    int dialog_height = std::min(dialog->height(), screen_geometry.height());
+    dialog->move(screen_geometry.center().x() + offset - dialog_width / 2,
+                 screen_geometry.center().y() - dialog_height / 2);
 }
 
+// move dialog to centre of right eye in SBS 3D mode
 void MoveDialogToRightEye(QWidget* dialog, QWidget* parent, int offset) {
-    // move dialog to centre of right eye in SBS 3D mode
-    if (Settings::values.toggle_3d) {
-        dialog->adjustSize();
-        QRect screen_geometry = parent->geometry();
-        screen_geometry.setWidth(screen_geometry.width() / 2);
-        int dialog_width = std::min(dialog->width(), screen_geometry.width());
-        int dialog_height = std::min(dialog->height(), screen_geometry.height());
-        dialog->move(screen_geometry.width() + screen_geometry.center().x() + offset -
-                         dialog_width / 2,
-                     screen_geometry.center().y() - dialog_height / 2);
+    if (!Settings::values.toggle_3d) {
+        return;
     }
+    dialog->adjustSize();
+    QRect screen_geometry = parent->geometry();
+    screen_geometry.setWidth(screen_geometry.width() / 2);
+    int dialog_width = std::min(dialog->width(), screen_geometry.width());
+    int dialog_height = std::min(dialog->height(), screen_geometry.height());
+    dialog->move(screen_geometry.width() + screen_geometry.center().x() + offset - dialog_width / 2,
+                 screen_geometry.center().y() - dialog_height / 2);
 }
 
 QMessageBox::StandardButton QMessageBox3D::showNewMessageBox(
@@ -79,6 +79,6 @@ QMessageBox::StandardButton QMessageBox3D::critical(QWidget* parent, const QStri
 }
 
 int QMessageBox3D::exec() {
-    MoveDialogToLeftEye(this, static_cast<QWidget*>(parent()));
+    MoveDialogToLeftEye(this, parentWidget());
     return QMessageBox::exec();
 }

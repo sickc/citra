@@ -200,7 +200,7 @@ void MultiplayerState::UpdateThemedIcons() {
 }
 
 void MultiplayerState::BringWidgetToFront(QWidget* widget) {
-    MoveDialogToLeftEye(widget, qobject_cast<QWidget*>(parent()));
+    MoveDialogToLeftEye(widget, parentWidget());
     widget->show();
     widget->activateWindow();
     widget->raise();
