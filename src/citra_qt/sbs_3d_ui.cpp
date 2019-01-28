@@ -9,8 +9,6 @@
 #include "citra_qt/sbs_3d_ui.h"
 #include "core/settings.h"
 
-#define PARALLAX 8
-
 // move dialog to centre of left eye in SBS 3D mode
 void MoveDialogToLeftEye(QWidget* dialog, QWidget* parent, int offset) {
     if (!Settings::values.toggle_3d) {
@@ -42,12 +40,13 @@ void MoveDialogToRightEye(QWidget* dialog, QWidget* parent, int offset) {
 QMessageBox::StandardButton QMessageBox3D::showNewMessageBox(
     QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    constexpr int parallax = 8;
     QMessageBox left_box(icon, title, text, buttons, parent);
     QMessageBox right_box(icon, title, text, buttons, parent);
     left_box.setDefaultButton(defaultButton);
     right_box.setDefaultButton(defaultButton);
-    MoveDialogToLeftEye(&left_box, parent, +PARALLAX);
-    MoveDialogToRightEye(&right_box, parent, -PARALLAX);
+    MoveDialogToLeftEye(&left_box, parent, +parallax);
+    MoveDialogToRightEye(&right_box, parent, -parallax);
     right_box.show();
     if (left_box.exec() == -1)
         return QMessageBox::Cancel;
