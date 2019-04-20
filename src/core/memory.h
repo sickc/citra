@@ -252,6 +252,8 @@ public:
 
     bool IsValidPhysicalAddress(PAddr paddr);
 
+    static bool IsValidVirtualAddress(const Kernel::Process& process, VAddr vaddr);
+
     /// Gets offset in FCRAM from a pointer inside FCRAM range
     u32 GetFCRAMOffset(u8* pointer);
 
@@ -294,6 +296,8 @@ private:
 };
 
 /// Determines if the given VAddr is valid for the specified process.
-bool IsValidVirtualAddress(const Kernel::Process& process, VAddr vaddr);
+inline bool IsValidVirtualAddress(const Kernel::Process& process, VAddr vaddr) {
+    return MemorySystem::IsValidVirtualAddress(process, vaddr);
+}
 
 } // namespace Memory

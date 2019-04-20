@@ -198,7 +198,11 @@ void MemorySystem::Write(const VAddr vaddr, const T data) {
     }
 }
 
-bool IsValidVirtualAddress(const Kernel::Process& process, const VAddr vaddr) {
+bool MemorySystem::IsValidPhysicalAddress(const PAddr paddr) {
+    return GetPhysicalPointer(paddr) != nullptr;
+}
+
+bool MemorySystem::IsValidVirtualAddress(const Kernel::Process& process, const VAddr vaddr) {
     auto& page_table = process.vm_manager.page_table;
 
     const u8* page_pointer = page_table.pointers[vaddr >> PAGE_BITS];
@@ -209,10 +213,6 @@ bool IsValidVirtualAddress(const Kernel::Process& process, const VAddr vaddr) {
         return true;
 
     return false;
-}
-
-bool MemorySystem::IsValidPhysicalAddress(const PAddr paddr) {
-    return GetPhysicalPointer(paddr) != nullptr;
 }
 
 u8* MemorySystem::GetPointer(const VAddr vaddr) {
