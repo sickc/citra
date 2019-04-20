@@ -72,6 +72,11 @@ public:
 MemorySystem::MemorySystem() : impl(std::make_unique<Impl>()) {}
 MemorySystem::~MemorySystem() = default;
 
+void MemorySystem::ResetPageTable(PageTable& page_table) {
+    page_table.pointers.fill(nullptr);
+    page_table.attributes.fill(Memory::PageType::Unmapped);
+}
+
 void MemorySystem::SetCurrentPageTable(PageTable* page_table) {
     impl->current_page_table = page_table;
 }

@@ -49,8 +49,7 @@ void VMManager::Reset() {
     initial_vma.size = MAX_ADDRESS;
     vma_map.emplace(initial_vma.base, initial_vma);
 
-    page_table.pointers.fill(nullptr);
-    page_table.attributes.fill(Memory::PageType::Unmapped);
+    memory.ResetPageTable(page_table);
 
     UpdatePageTableForVMA(initial_vma);
 }
