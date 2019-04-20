@@ -7,6 +7,7 @@
 #include "audio_core/dsp_interface.h"
 #include "common/assert.h"
 #include "common/common_types.h"
+#include "common/fastmem_mapper.h"
 #include "common/logging/log.h"
 #include "common/swap.h"
 #include "core/arm/arm_interface.h"
@@ -56,11 +57,13 @@ private:
 
 class MemorySystem::Impl {
 public:
+    Common::FastmemMapper fastmem_mapper{0x11000000};
+
     // Visual Studio would try to allocate these on compile time if they are std::array, which would
     // exceed the memory limit.
-    std::unique_ptr<u8[]> fcram = std::make_unique<u8[]>(Memory::FCRAM_N3DS_SIZE);
-    std::unique_ptr<u8[]> vram = std::make_unique<u8[]>(Memory::VRAM_SIZE);
-    std::unique_ptr<u8[]> n3ds_extra_ram = std::make_unique<u8[]>(Memory::N3DS_EXTRA_RAM_SIZE);
+    Common::BackingMemory fcram = fastmem_mapper.Allocate(Memory::FCRAM_N3DS_SIZE);
+    Common::BackingMemory vram = fastmem_mapper.Allocate(Memory::VRAM_SIZE);
+    Common::BackingMemory n3ds_extra_ram = fastmem_mapper.Allocate(Memory::N3DS_EXTRA_RAM_SIZE);
 
     PageTable* current_page_table = nullptr;
     RasterizerCacheMarker cache_marker;
@@ -75,6 +78,7 @@ MemorySystem::~MemorySystem() = default;
 void MemorySystem::ResetPageTable(PageTable& page_table) {
     page_table.pointers.fill(nullptr);
     page_table.attributes.fill(Memory::PageType::Unmapped);
+    page_table.fastmem_base = impl->fastmem_mapper.AllocateFastmemRegion();
 }
 
 void MemorySystem::SetCurrentPageTable(PageTable* page_table) {
@@ -103,6 +107,11 @@ void MemorySystem::MapPages(PageTable& page_table, u32 base, u32 size, u8* memor
         if (type == PageType::Memory && impl->cache_marker.IsCached(base * PAGE_SIZE)) {
             page_table.attributes[base] = PageType::RasterizerCachedMemory;
             page_table.pointers[base] = nullptr;
+            impl->fastmem_mapper.Unmap(page_table, base * PAGE_SIZE, PAGE_SIZE);
+        } else if (memory) {
+            impl->fastmem_mapper.Map(page_table, base * PAGE_SIZE, memory, PAGE_SIZE);
+        } else {
+            impl->fastmem_mapper.Unmap(page_table, base * PAGE_SIZE, PAGE_SIZE);
         }
 
         base += 1;
@@ -125,13 +134,13 @@ void MemorySystem::UnmapRegion(PageTable& page_table, VAddr base, u32 size) {
 
 u8* MemorySystem::GetPointerForRasterizerCache(VAddr addr) {
     if (addr >= LINEAR_HEAP_VADDR && addr < LINEAR_HEAP_VADDR_END) {
-        return impl->fcram.get() + (addr - LINEAR_HEAP_VADDR);
+        return impl->fcram.Get() + (addr - LINEAR_HEAP_VADDR);
     }
     if (addr >= NEW_LINEAR_HEAP_VADDR && addr < NEW_LINEAR_HEAP_VADDR_END) {
-        return impl->fcram.get() + (addr - NEW_LINEAR_HEAP_VADDR);
+        return impl->fcram.Get() + (addr - NEW_LINEAR_HEAP_VADDR);
     }
     if (addr >= VRAM_VADDR && addr < VRAM_VADDR_END) {
-        return impl->vram.get() + (addr - VRAM_VADDR);
+        return impl->vram.Get() + (addr - VRAM_VADDR);
     }
     UNREACHABLE();
 }
@@ -279,16 +288,16 @@ u8* MemorySystem::GetPhysicalPointer(PAddr address) {
     u8* target_pointer = nullptr;
     switch (area->paddr_base) {
     case VRAM_PADDR:
-        target_pointer = impl->vram.get() + offset_into_region;
+        target_pointer = impl->vram.Get() + offset_into_region;
         break;
     case DSP_RAM_PADDR:
         target_pointer = impl->dsp->GetDspMemory().data() + offset_into_region;
         break;
     case FCRAM_PADDR:
-        target_pointer = impl->fcram.get() + offset_into_region;
+        target_pointer = impl->fcram.Get() + offset_into_region;
         break;
     case N3DS_EXTRA_RAM_PADDR:
-        target_pointer = impl->n3ds_extra_ram.get() + offset_into_region;
+        target_pointer = impl->n3ds_extra_ram.Get() + offset_into_region;
         break;
     default:
         UNREACHABLE();
@@ -340,6 +349,7 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
                     case PageType::Memory:
                         page_type = PageType::RasterizerCachedMemory;
                         page_table->pointers[vaddr >> PAGE_BITS] = nullptr;
+                        impl->fastmem_mapper.Unmap(*page_table, vaddr, PAGE_SIZE);
                         break;
                     default:
                         UNREACHABLE();
@@ -352,9 +362,10 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
                         // address space, for example, a system module need not have a VRAM mapping.
                         break;
                     case PageType::RasterizerCachedMemory: {
+                        u8* ptr = GetPointerForRasterizerCache(vaddr & ~PAGE_MASK);
                         page_type = PageType::Memory;
-                        page_table->pointers[vaddr >> PAGE_BITS] =
-                            GetPointerForRasterizerCache(vaddr & ~PAGE_MASK);
+                        page_table->pointers[vaddr >> PAGE_BITS] = ptr;
+                        impl->fastmem_mapper.Map(*page_table, vaddr, ptr, PAGE_SIZE);
                         break;
                     }
                     default:
@@ -643,13 +654,13 @@ void MemorySystem::CopyBlock(const Kernel::Process& dest_process,
 }
 
 u32 MemorySystem::GetFCRAMOffset(u8* pointer) {
-    ASSERT(pointer >= impl->fcram.get() && pointer <= impl->fcram.get() + Memory::FCRAM_N3DS_SIZE);
-    return pointer - impl->fcram.get();
+    ASSERT(pointer >= impl->fcram.Get() && pointer <= impl->fcram.Get() + Memory::FCRAM_N3DS_SIZE);
+    return pointer - impl->fcram.Get();
 }
 
 u8* MemorySystem::GetFCRAMPointer(u32 offset) {
     ASSERT(offset <= Memory::FCRAM_N3DS_SIZE);
-    return impl->fcram.get() + offset;
+    return impl->fcram.Get() + offset;
 }
 
 void MemorySystem::SetDSP(AudioCore::DspInterface& dsp) {

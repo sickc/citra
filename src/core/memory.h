@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "common/common_types.h"
+#include "common/fastmem_mapper.h"
 
 class ARM_Interface;
 class ARM_Dynarmic;
@@ -17,10 +18,6 @@ class ARM_Dynarmic;
 namespace AudioCore {
 class DspInterface;
 }
-
-namespace Common {
-class FastmemMapper;
-};
 
 namespace Kernel {
 class Process;
@@ -75,6 +72,8 @@ private:
      * the corresponding entry in `pointers` MUST be set to null.
      */
     std::array<PageType, PAGE_TABLE_NUM_ENTRIES> attributes;
+
+    Common::FastmemRegion fastmem_base{nullptr, nullptr};
 };
 
 /// Physical memory regions as seen from the ARM11

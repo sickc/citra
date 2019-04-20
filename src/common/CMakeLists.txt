@@ -66,6 +66,8 @@ add_library(common STATIC
     common_funcs.h
     common_paths.h
     common_types.h
+    fastmem_mapper.cpp
+    fastmem_mapper.h
     file_util.cpp
     file_util.h
     hash.h
