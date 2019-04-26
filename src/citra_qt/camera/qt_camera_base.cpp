@@ -5,7 +5,7 @@
 #include <QMessageBox>
 #include "citra_qt/camera/camera_util.h"
 #include "citra_qt/camera/qt_camera_base.h"
-#include "citra_qt/sbs_3d_ui.h"
+#include "citra_qt/util/sbs_dialog.h"
 
 namespace Camera {
 
@@ -49,7 +49,7 @@ std::unique_ptr<CameraInterface> QtCameraFactory::CreatePreview(const std::strin
     if (camera->IsPreviewAvailable()) {
         return camera;
     }
-    QMessageBox3D::critical(
+    MessageBox3D::critical(
         nullptr, QObject::tr("Error"),
         (config.empty() ? QObject::tr("Couldn't load the camera")
                         : QObject::tr("Couldn't load %1").arg(QString::fromStdString(config))));

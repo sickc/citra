@@ -13,7 +13,7 @@
 #include <QPushButton>
 #include <boost/range/algorithm/copy.hpp>
 #include "citra_qt/debugger/graphics/graphics_tracing.h"
-#include "citra_qt/sbs_3d_ui.h"
+#include "citra_qt/util/sbs_dialog.h"
 #include "common/common_types.h"
 #include "core/hw/gpu.h"
 #include "core/hw/lcd.h"
@@ -160,12 +160,12 @@ void GraphicsTracingWidget::OnEmulationStopping() {
 
     if (context->recorder) {
         auto reply =
-            QMessageBox3D::question(this, tr("CiTracing still active"),
-                                    tr("A CiTrace is still being recorded. Do you want to save it? "
-                                       "If not, all recorded data will be discarded."),
-                                    QMessageBox3D::Yes | QMessageBox3D::No, QMessageBox3D::Yes);
+            MessageBox3D::question(this, tr("CiTracing still active"),
+                                   tr("A CiTrace is still being recorded. Do you want to save it? "
+                                      "If not, all recorded data will be discarded."),
+                                   MessageBox3D::Yes | MessageBox3D::No, MessageBox3D::Yes);
 
-        if (reply == QMessageBox3D::Yes) {
+        if (reply == MessageBox3D::Yes) {
             StopRecording();
         } else {
             AbortRecording();

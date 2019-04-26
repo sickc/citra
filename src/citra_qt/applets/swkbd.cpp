@@ -9,7 +9,7 @@
 #include <QString>
 #include <QVBoxLayout>
 #include "citra_qt/applets/swkbd.h"
-#include "citra_qt/sbs_3d_ui.h"
+#include "citra_qt/util/sbs_dialog.h"
 
 QtKeyboardValidator::QtKeyboardValidator(QtKeyboard* keyboard_) : keyboard(keyboard_) {}
 
@@ -105,7 +105,7 @@ void QtKeyboardDialog::HandleValidationError(Frontend::ValidationError error) {
         {ValidationError::BlankInputNotAllowed, tr("Blank input is not allowed")},
         {ValidationError::EmptyInputNotAllowed, tr("Empty input is not allowed")},
     };
-    QMessageBox3D::critical(this, tr("Validation error"), VALIDATION_ERROR_MESSAGES.at(error));
+    MessageBox3D::critical(this, tr("Validation error"), VALIDATION_ERROR_MESSAGES.at(error));
 }
 
 QtKeyboard::QtKeyboard(QWidget& parent_) : parent(parent_) {}

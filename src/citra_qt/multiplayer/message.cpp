@@ -6,7 +6,7 @@
 #include <QString>
 
 #include "citra_qt/multiplayer/message.h"
-#include "citra_qt/sbs_3d_ui.h"
+#include "citra_qt/util/sbs_dialog.h"
 
 namespace NetworkMessage {
 const ConnectionError USERNAME_NOT_VALID(
@@ -49,13 +49,13 @@ const ConnectionError NO_SUCH_USER(QT_TR_NOOP(
     "The user you are trying to kick/ban could not be found.\nThey may have left the room."));
 
 static bool WarnMessage(const std::string& title, const std::string& text) {
-    return QMessageBox3D::Ok == QMessageBox3D::warning(nullptr, QObject::tr(title.c_str()),
-                                                       QObject::tr(text.c_str()),
-                                                       QMessageBox3D::Ok | QMessageBox3D::Cancel);
+    return MessageBox3D::Ok == MessageBox3D::warning(nullptr, QObject::tr(title.c_str()),
+                                                     QObject::tr(text.c_str()),
+                                                     MessageBox3D::Ok | MessageBox3D::Cancel);
 }
 
 void ShowError(const ConnectionError& e) {
-    QMessageBox3D::critical(nullptr, QObject::tr("Error"), QObject::tr(e.GetString().c_str()));
+    MessageBox3D::critical(nullptr, QObject::tr("Error"), QObject::tr(e.GetString().c_str()));
 }
 
 bool WarnCloseRoom() {

@@ -7,7 +7,7 @@
 #include <QMessageBox>
 #endif
 #include "citra_qt/configuration/configure_graphics.h"
-#include "citra_qt/sbs_3d_ui.h"
+#include "citra_qt/util/sbs_dialog.h"
 #include "core/core.h"
 #include "core/settings.h"
 #include "ui_configure_graphics.h"
@@ -33,7 +33,7 @@ ConfigureGraphics::ConfigureGraphics(QWidget* parent)
 #ifdef __APPLE__
     connect(ui->toggle_hw_shader, &QCheckBox::stateChanged, this, [this](int state) {
         if (state == Qt::Checked) {
-            QMessageBox3D::warning(
+            MessageBox3D::warning(
                 this, tr("Hardware Shader Warning"),
                 tr("Hardware Shader support is broken on macOS, and will cause graphical issues "
                    "like showing a black screen.<br><br>The option is only there for "
