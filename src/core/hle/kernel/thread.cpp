@@ -77,14 +77,15 @@ void Thread::Stop() {
     owner_process->tls_slots[tls_page].reset(tls_slot);
 }
 
+// TODO: Make this ready for multiple cores
 void ThreadManager::SwitchContext(Thread* new_thread) {
     Thread* previous_thread = GetCurrentThread();
 
-    Core::Timing& timing = kernel.timing;
+    Core::TimingManager& timing = kernel.timing;
 
     // Save context for previous thread
     if (previous_thread) {
-        previous_thread->last_running_ticks = timing.GetTicks();
+        previous_thread->last_running_ticks = timing.GetGlobalTicks();
         cpu->SaveContext(previous_thread->context);
 
         if (previous_thread->status == ThreadStatus::Running) {
@@ -319,7 +320,7 @@ ResultVal<std::shared_ptr<Thread>> KernelSystem::CreateThread(std::string name, 
     thread->entry_point = entry_point;
     thread->stack_top = stack_top;
     thread->nominal_priority = thread->current_priority = priority;
-    thread->last_running_ticks = timing.GetTicks();
+    thread->last_running_ticks = timing.GetGlobalTicks();
     thread->processor_id = processor_id;
     thread->wait_objects.clear();
     thread->wait_address = 0;

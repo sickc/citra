@@ -37,7 +37,7 @@ static std::chrono::seconds GetInitTime() {
     }
 }
 
-Handler::Handler(Core::Timing& timing) : timing(timing) {
+Handler::Handler(Core::TimingManager& timing) : timing(timing) {
     std::memset(&shared_page, 0, sizeof(shared_page));
 
     shared_page.running_hw = 0x1; // product
@@ -56,7 +56,7 @@ Handler::Handler(Core::Timing& timing) : timing(timing) {
     using namespace std::placeholders;
     update_time_event = timing.RegisterEvent("SharedPage::UpdateTimeCallback",
                                              std::bind(&Handler::UpdateTimeCallback, this, _1, _2));
-    timing.ScheduleEvent(0, update_time_event);
+    timing.ScheduleEvent(0, update_time_event, 0, 0);
 
     float slidestate = Settings::values.factor_3d / 100.0f;
     shared_page.sliderstate_3d = static_cast<float_le>(slidestate);

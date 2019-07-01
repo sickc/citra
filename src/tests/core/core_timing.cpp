@@ -28,8 +28,8 @@ void CallbackTemplate(u64 userdata, s64 cycles_late) {
     REQUIRE(lateness == cycles_late);
 }
 
-static void AdvanceAndCheck(Core::Timing& timing, u32 idx, int downcount, int expected_lateness = 0,
-                            int cpu_downcount = 0) {
+static void AdvanceAndCheck(Core::TimingManager& timing, u32 idx, int downcount,
+                            int expected_lateness = 0, int cpu_downcount = 0) {
     callbacks_ran_flags = 0;
     expected_callback = CB_IDS[idx];
     lateness = expected_lateness;
@@ -177,7 +177,7 @@ TEST_CASE("CoreTiming[PredictableLateness]", "[core]") {
 namespace ChainSchedulingTest {
 static int reschedules = 0;
 
-static void RescheduleCallback(Core::Timing& timing, u64 userdata, s64 cycles_late) {
+static void RescheduleCallback(Core::TimingManager& timing, u64 userdata, s64 cycles_late) {
     --reschedules;
     REQUIRE(reschedules >= 0);
     REQUIRE(lateness == cycles_late);

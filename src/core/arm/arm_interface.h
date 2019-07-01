@@ -9,6 +9,7 @@
 #include "common/common_types.h"
 #include "core/arm/skyeye_common/arm_regformat.h"
 #include "core/arm/skyeye_common/vfp/asm_vfp.h"
+#include "core/core_timing.h"
 
 /// Generic ARM11 CPU interface
 class ARM_Interface : NonCopyable {
@@ -172,4 +173,15 @@ public:
 
     /// Prepare core for thread reschedule (if needed to correctly handle state)
     virtual void PrepareReschedule() = 0;
+
+    void SetTimer(std::shared_ptr<Core::TimingManager::Timer> new_timer) {
+        timer = new_timer;
+    }
+
+    std::shared_ptr<Core::TimingManager::Timer> GetTimer() {
+        return timer;
+    }
+
+protected:
+    Core::SharedTimer timer = nullptr;
 };

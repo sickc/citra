@@ -72,8 +72,7 @@ private:
 class DynarmicUserCallbacks final : public Dynarmic::A32::UserCallbacks {
 public:
     explicit DynarmicUserCallbacks(ARM_Dynarmic& parent)
-        : parent(parent), timing(parent.system.CoreTiming()), svc_context(parent.system),
-          memory(parent.memory) {}
+        : parent(parent), svc_context(parent.system), memory(parent.memory) {}
     ~DynarmicUserCallbacks() = default;
 
     std::uint8_t MemoryRead8(VAddr vaddr) override {
@@ -150,15 +149,14 @@ public:
     }
 
     void AddTicks(std::uint64_t ticks) override {
-        timing.AddTicks(ticks);
+        parent.GetTimer()->AddTicks(ticks);
     }
     std::uint64_t GetTicksRemaining() override {
-        s64 ticks = timing.GetDowncount();
+        s64 ticks = parent.GetTimer()->GetDowncount();
         return static_cast<u64>(ticks <= 0 ? 0 : ticks);
     }
 
     ARM_Dynarmic& parent;
-    Core::Timing& timing;
     Kernel::SVCContext svc_context;
     Memory::MemorySystem& memory;
 };

@@ -29,7 +29,7 @@ class MemorySystem;
 }
 
 namespace Core {
-class Timing;
+class TimingManager;
 }
 
 namespace Kernel {
@@ -80,7 +80,7 @@ enum class MemoryRegion : u16 {
 
 class KernelSystem {
 public:
-    explicit KernelSystem(Memory::MemorySystem& memory, Core::Timing& timing,
+    explicit KernelSystem(Memory::MemorySystem& memory, Core::TimingManager& timing,
                           std::function<void()> prepare_reschedule_callback, u32 system_mode);
     ~KernelSystem();
 
@@ -242,7 +242,7 @@ public:
 
     Memory::MemorySystem& memory;
 
-    Core::Timing& timing;
+    Core::TimingManager& timing;
 
 private:
     void MemoryInit(u32 mem_type);
