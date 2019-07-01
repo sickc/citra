@@ -67,7 +67,7 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     // All cores should have executed the same amount of ticks. If this is not the case an event was
     // scheduled with a cycles_into_future smaller then the current downcount.
     // So we have to get those cores to the same global time first
-    u64 global_ticks = timing->GetTicks();
+    u64 global_ticks = timing->GetGlobalTicks();
     s64 max_delay = 0;
     ARM_Interface* current_core_to_execute = 0;
     for (auto& cpu_core : cpu_cores) {
@@ -259,8 +259,8 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
         cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
         cpu_cores.back()->SetTimer(timing->GetTimer(0));
 #else
-        cpu_core = std::make_shared<ARM_DynCom>(this, *memory, USER32MODE);
-        cpu_cores.back()->setTiming(timing->GetTimer(0));
+        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(0));
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
@@ -270,8 +270,7 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
     running_core = cpu_cores[0].get();
 
     // TODO : needs change for multiple cores
-    kernel->GetThreadManager().SetCPU(*cpu_cores[0]);
-    memory->SetCPU(*cpu_cores[0]);
+    kernel->SetCPU(cpu_cores[0]);
 
     if (Settings::values.enable_dsp_lle) {
         dsp_core = std::make_unique<AudioCore::DspLle>(*memory,
