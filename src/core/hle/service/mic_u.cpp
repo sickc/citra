@@ -361,7 +361,7 @@ struct MIC_U::Impl {
     bool allow_shell_closed = false;
     bool clamp = false;
     std::unique_ptr<Frontend::Mic::Interface> mic;
-    Core::Timing& timing;
+    Core::TimingManager& timing;
     State state{};
 };
 

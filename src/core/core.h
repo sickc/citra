@@ -59,7 +59,7 @@ class RendererBase;
 
 namespace Core {
 
-class Timing;
+class TimingManager;
 
 class System {
 public:
@@ -140,7 +140,7 @@ public:
      * @returns True if the emulated system is powered on, otherwise false.
      */
     bool IsPoweredOn() const {
-        return cpu_core != nullptr;
+        return cpu_cores.size() > 0 && cpu_cores[0] != nullptr;
     }
 
     /**
@@ -160,9 +160,14 @@ public:
      * Gets a reference to the emulated CPU.
      * @returns A reference to the emulated CPU.
      */
+    // TODO: remove it
     ARM_Interface& CPU() {
-        return *cpu_core;
+        return *cpu_cores[0];
     }
+
+    ARM_Interface& GetRunningCore() {
+        return *running_core;
+    };
 
     /**
      * Gets a reference to the emulated DSP.
@@ -199,10 +204,10 @@ public:
     const Kernel::KernelSystem& Kernel() const;
 
     /// Gets a reference to the timing system
-    Timing& CoreTiming();
+    TimingManager& CoreTiming();
 
     /// Gets a const reference to the timing system
-    const Timing& CoreTiming() const;
+    const TimingManager& CoreTiming() const;
 
     /// Gets a reference to the memory system
     Memory::MemorySystem& Memory();
@@ -270,6 +275,8 @@ public:
     std::shared_ptr<Frontend::ImageInterface> GetImageInterface() const {
         return registered_image_interface;
     }
+    
+    bool initalized = false;
 
 private:
     /**
@@ -288,7 +295,8 @@ private:
     std::unique_ptr<Loader::AppLoader> app_loader;
 
     /// ARM11 CPU core
-    std::shared_ptr<ARM_Interface> cpu_core;
+    std::vector<std::shared_ptr<ARM_Interface>> cpu_cores;
+    ARM_Interface* running_core = nullptr;
 
     /// DSP core
     std::unique_ptr<AudioCore::DspInterface> dsp_core;
@@ -325,7 +333,7 @@ private:
 
     std::unique_ptr<Memory::MemorySystem> memory;
     std::unique_ptr<Kernel::KernelSystem> kernel;
-    std::unique_ptr<Timing> timing;
+    std::unique_ptr<TimingManager> timing;
 
 private:
     static System s_instance;

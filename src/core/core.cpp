@@ -44,8 +44,10 @@ namespace Core {
 
 System::ResultStatus System::RunLoop(bool tight_loop) {
     status = ResultStatus::Success;
-    if (!cpu_core) {
-        return ResultStatus::ErrorNotInitialized;
+    for (const auto& cpu_core : cpu_cores) {
+        if (!cpu_core) {
+            return ResultStatus::ErrorNotInitialized;
+        }
     }
 
     if (GDBStub::IsServerEnabled()) {
@@ -62,20 +64,66 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         }
     }
 
-    // If we don't have a currently active thread then don't execute instructions,
-    // instead advance to the next event and try to yield to the next thread
-    if (kernel->GetThreadManager().GetCurrentThread() == nullptr) {
-        LOG_TRACE(Core_ARM11, "Idling");
-        timing->Idle();
-        timing->Advance();
-        PrepareReschedule();
-    } else {
-        timing->Advance();
-        if (tight_loop) {
-            cpu_core->Run();
-        } else {
-            cpu_core->Step();
+    // All cores should have executed the same amount of ticks. If this is not the case an event was
+    // scheduled with a cycles_into_future smaller then the current downcount.
+    // So we have to get those cores to the same global time first
+    u64 global_ticks = timing->GetTicks();
+    s64 max_delay = 0;
+    ARM_Interface* current_core_to_execute = 0;
+    for (auto& cpu_core : cpu_cores) {
+        if (cpu_core->GetTimer()->GetTicks() < global_ticks) {
+            s64 delay = global_ticks - cpu_core->GetTimer()->GetTicks();
+            cpu_core->GetTimer()->Advance(delay);
+            if (max_delay < delay) {
+                max_delay = delay;
+                current_core_to_execute = cpu_core.get();
+            }
         }
+    }
+
+    if (max_delay > 0) {
+        running_core = current_core_to_execute;
+        // TODO: Check only for threads on that core
+        if (kernel->GetThreadManager().GetCurrentThread() == nullptr) {
+            LOG_TRACE(Core_ARM11, "Idling");
+            current_core_to_execute->GetTimer()->Idle();
+            PrepareReschedule();
+        } else {
+            if (tight_loop) {
+                current_core_to_execute->Run();
+            } else {
+                current_core_to_execute->Step();
+            }
+        }
+    } else {
+        // Now all cores are at the same global time. So we will run them one after the other
+        // with a max slice that is the minimum of all max slices of all cores
+        // TODO: Make special check for idle since we can easily revert the time of idle cores
+        s64 max_slice = TimingManager::MAX_SLICE_LENGTH;
+        for (const auto& cpu_core : cpu_cores) {
+            max_slice = std::min(max_slice, cpu_core->GetTimer()->GetMaxSliceLength());
+        }
+        for (auto& cpu_core : cpu_cores) {
+            cpu_core->GetTimer()->Advance(max_slice);
+        }
+        for (auto& cpu_core : cpu_cores) {
+            running_core = cpu_core.get();
+            // If we don't have a currently active thread then don't execute instructions,
+            // instead advance to the next event and try to yield to the next thread
+            // TODO: Check only for threads on that core
+            if (kernel->GetThreadManager().GetCurrentThread() == nullptr) {
+                LOG_TRACE(Core_ARM11, "Idling");
+                cpu_core->GetTimer()->Idle();
+                PrepareReschedule();
+            } else {
+                if (tight_loop) {
+                    cpu_core->Run();
+                } else {
+                    cpu_core->Step();
+                }
+            }
+        }
+        timing->AddToGlobalTicks(max_slice);
     }
 
     if (GDBStub::IsServerEnabled()) {
@@ -174,7 +222,8 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
 }
 
 void System::PrepareReschedule() {
-    cpu_core->PrepareReschedule();
+    running_core->PrepareReschedule();
+    // TODO: pending for each core?
     reschedule_pending = true;
 }
 
@@ -194,25 +243,35 @@ void System::Reschedule() {
 System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mode) {
     LOG_DEBUG(HW_Memory, "initialized OK");
 
+    // TODO: check settings for n3ds and change value accordingly
+    std::size_t num_cores = 1;
+
     memory = std::make_unique<Memory::MemorySystem>();
 
-    timing = std::make_unique<Timing>();
+    timing = std::make_unique<TimingManager>(*this, num_cores);
 
-    kernel = std::make_unique<Kernel::KernelSystem>(*memory, *timing,
-                                                    [this] { PrepareReschedule(); }, system_mode);
+    kernel = std::make_unique<Kernel::KernelSystem>(
+        *memory, *timing, [this] { PrepareReschedule(); }, system_mode);
 
+    // TODO: create cores properly
     if (Settings::values.use_cpu_jit) {
 #ifdef ARCHITECTURE_x86_64
-        cpu_core = std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE);
+        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(0));
 #else
         cpu_core = std::make_shared<ARM_DynCom>(this, *memory, USER32MODE);
+        cpu_cores.back()->setTiming(timing->GetTimer(0));
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
-        cpu_core = std::make_shared<ARM_DynCom>(this, *memory, USER32MODE);
+        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(0));
     }
+    running_core = cpu_cores[0].get();
 
-    kernel->SetCPU(cpu_core);
+    // TODO : needs change for multiple cores
+    kernel->GetThreadManager().SetCPU(*cpu_cores[0]);
+    memory->SetCPU(*cpu_cores[0]);
 
     if (Settings::values.enable_dsp_lle) {
         dsp_core = std::make_unique<AudioCore::DspLle>(*memory,
@@ -257,6 +316,8 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
 
     LOG_DEBUG(Core, "Initialized OK");
 
+    initalized = true;
+
     return ResultStatus::Success;
 }
 
@@ -288,11 +349,11 @@ const Kernel::KernelSystem& System::Kernel() const {
     return *kernel;
 }
 
-Timing& System::CoreTiming() {
+TimingManager& System::CoreTiming() {
     return *timing;
 }
 
-const Timing& System::CoreTiming() const {
+const TimingManager& System::CoreTiming() const {
     return *timing;
 }
 
@@ -362,7 +423,9 @@ void System::Shutdown() {
     cheat_engine.reset();
     service_manager.reset();
     dsp_core.reset();
-    cpu_core.reset();
+    for (auto& cpu_core : cpu_cores) {
+        cpu_core.reset();
+    }
     kernel.reset();
     timing.reset();
     app_loader.reset();

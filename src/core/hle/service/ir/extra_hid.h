@@ -41,7 +41,7 @@ static_assert(sizeof(ExtraHIDResponse) == 6, "HID status response has wrong size
  */
 class ExtraHID final : public IRDevice {
 public:
-    explicit ExtraHID(SendFunc send_func, Core::Timing& timing);
+    explicit ExtraHID(SendFunc send_func, Core::TimingManager& timing);
     ~ExtraHID();
 
     void OnConnect() override;
@@ -57,7 +57,7 @@ private:
     void HandleReadCalibrationDataRequest(const std::vector<u8>& request);
     void LoadInputDevices();
 
-    Core::Timing& timing;
+    Core::TimingManager& timing;
     u8 hid_period;
     Core::TimingEventType* hid_polling_callback_id;
     std::array<u8, 0x40> calibration_data;
