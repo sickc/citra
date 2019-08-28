@@ -56,6 +56,15 @@ void KernelSystem::SetCurrentProcess(std::shared_ptr<Process> process) {
     SetCurrentMemoryPageTable(&process->vm_manager.page_table);
 }
 
+void KernelSystem::SetCurrentProcessForCPU(std::shared_ptr<Process> process, u32 core_id) {
+    if (current_cpu->id == core_id) {
+        current_process = process;
+        SetCurrentMemoryPageTable(&process->vm_manager.page_table);
+    } else {
+        stored_processes[core_id];
+    }
+}
+
 void KernelSystem::SetCurrentMemoryPageTable(Memory::PageTable* page_table) {
     memory.SetCurrentPageTable(page_table);
     if (current_cpu != nullptr) {
