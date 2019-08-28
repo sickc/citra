@@ -44,10 +44,8 @@ namespace Core {
 
 System::ResultStatus System::RunLoop(bool tight_loop) {
     status = ResultStatus::Success;
-    for (const auto& cpu_core : cpu_cores) {
-        if (!cpu_core) {
-            return ResultStatus::ErrorNotInitialized;
-        }
+    if (std::any_of(cpu_cores.begin(), cpu_cores.end(), [](std::shared_ptr<ARM_Interface> ptr){return ptr == nullptr;})) {
+        return ResultStatus::ErrorNotInitialized;
     }
 
     if (GDBStub::IsServerEnabled()) {
@@ -69,22 +67,23 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     // So we have to get those cores to the same global time first
     u64 global_ticks = timing->GetGlobalTicks();
     s64 max_delay = 0;
-    ARM_Interface* current_core_to_execute = 0;
+    std::shared_ptr<ARM_Interface> current_core_to_execute = nullptr;
     for (auto& cpu_core : cpu_cores) {
         if (cpu_core->GetTimer()->GetTicks() < global_ticks) {
             s64 delay = global_ticks - cpu_core->GetTimer()->GetTicks();
             cpu_core->GetTimer()->Advance(delay);
             if (max_delay < delay) {
                 max_delay = delay;
-                current_core_to_execute = cpu_core.get();
+                current_core_to_execute = cpu_core;
             }
         }
     }
 
     if (max_delay > 0) {
-        running_core = current_core_to_execute;
+        running_core = current_core_to_execute.get();
+        kernel->SetRunningCPU(current_core_to_execute);
         // TODO: Check only for threads on that core
-        if (kernel->GetThreadManager().GetCurrentThread() == nullptr) {
+        if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
             LOG_TRACE(Core_ARM11, "Idling");
             current_core_to_execute->GetTimer()->Idle();
             PrepareReschedule();
@@ -108,10 +107,11 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         }
         for (auto& cpu_core : cpu_cores) {
             running_core = cpu_core.get();
+            kernel->SetRunningCPU(cpu_core);
             // If we don't have a currently active thread then don't execute instructions,
             // instead advance to the next event and try to yield to the next thread
             // TODO: Check only for threads on that core
-            if (kernel->GetThreadManager().GetCurrentThread() == nullptr) {
+            if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
                 LOG_TRACE(Core_ARM11, "Idling");
                 cpu_core->GetTimer()->Idle();
                 PrepareReschedule();
@@ -222,8 +222,10 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
 }
 
 void System::PrepareReschedule() {
-    running_core->PrepareReschedule();
-    // TODO: pending for each core?
+    // TODO: is all cores correct here?
+    for (auto core : cpu_cores) {
+        core->PrepareReschedule();
+    }
     reschedule_pending = true;
 }
 
@@ -237,40 +239,54 @@ void System::Reschedule() {
     }
 
     reschedule_pending = false;
-    kernel->GetThreadManager().Reschedule();
+    for (auto core : cpu_cores) {
+        kernel->GetThreadManager(core->id).Reschedule();
+    }
 }
 
 System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mode) {
     LOG_DEBUG(HW_Memory, "initialized OK");
 
-    // TODO: check settings for n3ds and change value accordingly
-    std::size_t num_cores = 1;
+    // TODO: check settings for n3ds mode and change value accordingly
+    constexpr std::size_t num_cores = 2;
 
     memory = std::make_unique<Memory::MemorySystem>();
 
     timing = std::make_unique<TimingManager>(*this, num_cores);
 
     kernel = std::make_unique<Kernel::KernelSystem>(
-        *memory, *timing, [this] { PrepareReschedule(); }, system_mode);
+        *memory, *timing, [this] { PrepareReschedule(); }, system_mode, num_cores);
 
     // TODO: create cores properly
     if (Settings::values.use_cpu_jit) {
 #ifdef ARCHITECTURE_x86_64
         cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
         cpu_cores.back()->SetTimer(timing->GetTimer(0));
+        cpu_cores.back()->id = 0;
+        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(1));
+        cpu_cores.back()->id = 1;
 #else
         cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
         cpu_cores.back()->SetTimer(timing->GetTimer(0));
+        cpu_cores.back()->id = 0;
+        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(1));
+        cpu_cores.back()->id = 1;
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
         cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
         cpu_cores.back()->SetTimer(timing->GetTimer(0));
+        cpu_cores.back()->id = 0;
+        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+        cpu_cores.back()->SetTimer(timing->GetTimer(1));
+        cpu_cores.back()->id = 1;
     }
     running_core = cpu_cores[0].get();
 
-    // TODO : needs change for multiple cores
-    kernel->SetCPU(cpu_cores[0]);
+    kernel->SetCPUs(cpu_cores);
+    kernel->SetRunningCPU(cpu_cores[0]);
 
     if (Settings::values.enable_dsp_lle) {
         dsp_core = std::make_unique<AudioCore::DspLle>(*memory,

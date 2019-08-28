@@ -182,6 +182,8 @@ public:
         return timer;
     }
 
+    u32 id;
+
 protected:
     Core::SharedTimer timer = nullptr;
 };

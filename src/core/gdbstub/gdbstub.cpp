@@ -160,7 +160,8 @@ BreakpointMap breakpoints_write;
 } // Anonymous namespace
 
 static Kernel::Thread* FindThreadById(int id) {
-    const auto& threads = Core::System::GetInstance().Kernel().GetThreadManager().GetThreadList();
+    // Todo: Loop over all ThreadManager
+    const auto& threads = Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
     for (auto& thread : threads) {
         if (thread->GetThreadId() == static_cast<u32>(id)) {
             return thread.get();
@@ -414,7 +415,7 @@ static void RemoveBreakpoint(BreakpointType type, VAddr addr) {
         Core::System::GetInstance().Memory().WriteBlock(
             *Core::System::GetInstance().Kernel().GetCurrentProcess(), bp->second.addr,
             bp->second.inst.data(), bp->second.inst.size());
-        Core::CPU().ClearInstructionCache();
+        Core::GetRunningCore().ClearInstructionCache();
     }
     p.erase(addr);
 }
@@ -540,8 +541,9 @@ static void HandleQuery() {
         SendReply(target_xml);
     } else if (strncmp(query, "fThreadInfo", strlen("fThreadInfo")) == 0) {
         std::string val = "m";
+        // Todo: Loop over all ThreadManager
         const auto& threads =
-            Core::System::GetInstance().Kernel().GetThreadManager().GetThreadList();
+            Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
         for (const auto& thread : threads) {
             val += fmt::format("{:x},", thread->GetThreadId());
         }
@@ -553,8 +555,9 @@ static void HandleQuery() {
         std::string buffer;
         buffer += "l<?xml version=\"1.0\"?>";
         buffer += "<threads>";
+        // Todo: Loop over all ThreadManager
         const auto& threads =
-            Core::System::GetInstance().Kernel().GetThreadManager().GetThreadList();
+            Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
         for (const auto& thread : threads) {
             buffer += fmt::format(R"*(<thread id="{:x}" name="Thread {:x}"></thread>)*",
                                   thread->GetThreadId(), thread->GetThreadId());
@@ -619,9 +622,9 @@ static void SendSignal(Kernel::Thread* thread, u32 signal, bool full = true) {
     if (full) {
 
         buffer = fmt::format("T{:02x}{:02x}:{:08x};{:02x}:{:08x};{:02x}:{:08x}", latest_signal,
-                             PC_REGISTER, htonl(Core::CPU().GetPC()), SP_REGISTER,
-                             htonl(Core::CPU().GetReg(SP_REGISTER)), LR_REGISTER,
-                             htonl(Core::CPU().GetReg(LR_REGISTER)));
+                             PC_REGISTER, htonl(Core::GetRunningCore().GetPC()), SP_REGISTER,
+                             htonl(Core::GetRunningCore().GetReg(SP_REGISTER)), LR_REGISTER,
+                             htonl(Core::GetRunningCore().GetReg(LR_REGISTER)));
     } else {
         buffer = fmt::format("T{:02x}", latest_signal);
     }
@@ -782,7 +785,7 @@ static void WriteRegister() {
         return SendReply("E01");
     }
 
-    Core::CPU().LoadContext(current_thread->context);
+    Core::GetRunningCore().LoadContext(current_thread->context);
 
     SendReply("OK");
 }
@@ -812,7 +815,7 @@ static void WriteRegisters() {
         }
     }
 
-    Core::CPU().LoadContext(current_thread->context);
+    Core::GetRunningCore().LoadContext(current_thread->context);
 
     SendReply("OK");
 }
@@ -869,7 +872,7 @@ static void WriteMemory() {
     GdbHexToMem(data.data(), len_pos + 1, len);
     Core::System::GetInstance().Memory().WriteBlock(
         *Core::System::GetInstance().Kernel().GetCurrentProcess(), addr, data.data(), len);
-    Core::CPU().ClearInstructionCache();
+    Core::GetRunningCore().ClearInstructionCache();
     SendReply("OK");
 }
 
@@ -883,12 +886,12 @@ void Break(bool is_memory_break) {
 static void Step() {
     if (command_length > 1) {
         RegWrite(PC_REGISTER, GdbHexToInt(command_buffer + 1), current_thread);
-        Core::CPU().LoadContext(current_thread->context);
+        Core::GetRunningCore().LoadContext(current_thread->context);
     }
     step_loop = true;
     halt_loop = true;
     send_trap = true;
-    Core::CPU().ClearInstructionCache();
+    Core::GetRunningCore().ClearInstructionCache();
 }
 
 bool IsMemoryBreak() {
@@ -904,7 +907,7 @@ static void Continue() {
     memory_break = false;
     step_loop = false;
     halt_loop = false;
-    Core::CPU().ClearInstructionCache();
+    Core::GetRunningCore().ClearInstructionCache();
 }
 
 /**
@@ -930,7 +933,7 @@ static bool CommitBreakpoint(BreakpointType type, VAddr addr, u32 len) {
         Core::System::GetInstance().Memory().WriteBlock(
             *Core::System::GetInstance().Kernel().GetCurrentProcess(), addr, btrap.data(),
             btrap.size());
-        Core::CPU().ClearInstructionCache();
+        Core::GetRunningCore().ClearInstructionCache();
     }
     p.insert({addr, breakpoint});
 
