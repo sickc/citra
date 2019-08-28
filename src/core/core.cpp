@@ -78,11 +78,12 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     }
 
     if (max_delay > 0) {
+        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id, current_core_to_execute->GetTimer()->GetDowncount());
         running_core = current_core_to_execute.get();
         kernel->SetRunningCPU(current_core_to_execute);
         // TODO: Check only for threads on that core
         if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
-            LOG_TRACE(Core_ARM11, "Idling");
+            LOG_TRACE(Core_ARM11, "Core {} idling", current_core_to_execute->id);
             current_core_to_execute->GetTimer()->Idle();
             PrepareReschedule();
         } else {
@@ -104,13 +105,14 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
             cpu_core->GetTimer()->Advance(max_slice);
         }
         for (auto& cpu_core : cpu_cores) {
+            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id, cpu_core->GetTimer()->GetDowncount());
             running_core = cpu_core.get();
             kernel->SetRunningCPU(cpu_core);
             // If we don't have a currently active thread then don't execute instructions,
             // instead advance to the next event and try to yield to the next thread
             // TODO: Check only for threads on that core
             if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
-                LOG_TRACE(Core_ARM11, "Idling");
+                LOG_TRACE(Core_ARM11, "Core {} idling", cpu_core->id);
                 cpu_core->GetTimer()->Idle();
                 PrepareReschedule();
             } else {
@@ -211,10 +213,7 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
 }
 
 void System::PrepareReschedule() {
-    // TODO: is all cores correct here?
-    for (auto core : cpu_cores) {
-        core->PrepareReschedule();
-    }
+    running_core->PrepareReschedule();
     reschedule_pending = true;
 }
 
@@ -229,6 +228,7 @@ void System::Reschedule() {
 
     reschedule_pending = false;
     for (auto core : cpu_cores) {
+        LOG_TRACE(Core_ARM11, "Reschedule core {}", core->id);
         kernel->GetThreadManager(core->id).Reschedule();
     }
 }

@@ -922,7 +922,7 @@ ResultCode SVC::CreateThread(Handle* out_handle, u32 entry_point, u32 arg, VAddr
 
 /// Called when a thread exits
 void SVC::ExitThread() {
-    LOG_TRACE(Kernel_SVC, "called, pc=0x{:08X}", system.CPU().GetPC());
+    LOG_TRACE(Kernel_SVC, "called, pc=0x{:08X}", system.GetRunningCore().GetPC());
 
     kernel.GetCurrentThreadManager().ExitCurrentThread();
     system.PrepareReschedule();

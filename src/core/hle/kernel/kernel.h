@@ -206,6 +206,7 @@ public:
 
     std::shared_ptr<Process> GetCurrentProcess() const;
     void SetCurrentProcess(std::shared_ptr<Process> process);
+    void SetCurrentProcessForCPU(std::shared_ptr<Process> process, u32 core_id);
 
     void SetCurrentMemoryPageTable(Memory::PageTable* page_table);
 

@@ -112,7 +112,7 @@ void ThreadManager::SwitchContext(Thread* new_thread) {
         new_thread->status = ThreadStatus::Running;
 
         if (previous_process.get() != current_thread->owner_process) {
-            kernel.SetCurrentProcess(SharedFrom(current_thread->owner_process));
+            kernel.SetCurrentProcessForCPU(SharedFrom(current_thread->owner_process), cpu->id);
         }
 
         cpu->LoadContext(new_thread->context);
@@ -436,6 +436,9 @@ void ThreadManager::Reschedule() {
         LOG_TRACE(Kernel, "context switch {} -> idle", cur->GetObjectId());
     } else if (next) {
         LOG_TRACE(Kernel, "context switch idle -> {}", next->GetObjectId());
+    } else {
+        LOG_TRACE(Kernel, "context switch idle -> idle, do nothing");
+        return;
     }
 
     SwitchContext(next);

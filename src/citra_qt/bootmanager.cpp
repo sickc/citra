@@ -22,6 +22,7 @@ EmuThread::EmuThread(GRenderWindow* render_window) : render_window(render_window
 EmuThread::~EmuThread() = default;
 
 void EmuThread::run() {
+    LOG_TRACE(Frontend, "EmuThread started");
     render_window->MakeCurrent();
 
     MicroProfileOnThreadCreate("EmuThread");
