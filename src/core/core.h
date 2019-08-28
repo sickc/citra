@@ -136,7 +136,7 @@ public:
      * @returns True if the emulated system is powered on, otherwise false.
      */
     bool IsPoweredOn() const {
-        return cpu_cores.size() > 0 && cpu_cores[0] != nullptr;
+        return cpu_cores.size() > 0 && std::all_of(cpu_cores.begin(), cpu_cores.end(), [](std::shared_ptr<ARM_Interface> ptr){return ptr != nullptr;});;
     }
 
     /**
@@ -156,10 +156,6 @@ public:
      * Gets a reference to the emulated CPU.
      * @returns A reference to the emulated CPU.
      */
-    // TODO: remove it
-    ARM_Interface& CPU() {
-        return *cpu_cores[0];
-    }
 
     ARM_Interface& GetRunningCore() {
         return *running_core;
@@ -319,8 +315,8 @@ private:
     std::atomic<bool> shutdown_requested;
 };
 
-inline ARM_Interface& CPU() {
-    return System::GetInstance().CPU();
+inline ARM_Interface& GetRunningCore() {
+    return System::GetInstance().GetRunningCore();
 }
 
 inline AudioCore::DspInterface& DSP() {

@@ -279,12 +279,12 @@ void SVC::ExitProcess() {
     current_process->status = ProcessStatus::Exited;
 
     // Stop all the process threads that are currently waiting for objects.
-    auto& thread_list = kernel.GetThreadManager().GetThreadList();
+    auto& thread_list = kernel.GetCurrentThreadManager().GetThreadList();
     for (auto& thread : thread_list) {
         if (thread->owner_process != current_process.get())
             continue;
 
-        if (thread.get() == kernel.GetThreadManager().GetCurrentThread())
+        if (thread.get() == kernel.GetCurrentThreadManager().GetCurrentThread())
             continue;
 
         // TODO(Subv): When are the other running/ready threads terminated?
@@ -296,7 +296,7 @@ void SVC::ExitProcess() {
     }
 
     // Kill the current thread
-    kernel.GetThreadManager().GetCurrentThread()->Stop();
+    kernel.GetCurrentThreadManager().GetCurrentThread()->Stop();
 
     system.PrepareReschedule();
 }
@@ -387,7 +387,7 @@ ResultCode SVC::SendSyncRequest(Handle handle) {
 
     system.PrepareReschedule();
 
-    return session->SendSyncRequest(SharedFrom(kernel.GetThreadManager().GetCurrentThread()));
+    return session->SendSyncRequest(SharedFrom(kernel.GetCurrentThreadManager().GetCurrentThread()));
 }
 
 /// Close a handle
@@ -399,7 +399,7 @@ ResultCode SVC::CloseHandle(Handle handle) {
 /// Wait for a handle to synchronize, timeout after the specified nanoseconds
 ResultCode SVC::WaitSynchronization1(Handle handle, s64 nano_seconds) {
     auto object = kernel.GetCurrentProcess()->handle_table.Get<WaitObject>(handle);
-    Thread* thread = kernel.GetThreadManager().GetCurrentThread();
+    Thread* thread = kernel.GetCurrentThreadManager().GetCurrentThread();
 
     if (object == nullptr)
         return ERR_INVALID_HANDLE;
@@ -451,7 +451,7 @@ ResultCode SVC::WaitSynchronization1(Handle handle, s64 nano_seconds) {
 /// Wait for the given handles to synchronize, timeout after the specified nanoseconds
 ResultCode SVC::WaitSynchronizationN(s32* out, VAddr handles_address, s32 handle_count,
                                      bool wait_all, s64 nano_seconds) {
-    Thread* thread = kernel.GetThreadManager().GetCurrentThread();
+    Thread* thread = kernel.GetCurrentThreadManager().GetCurrentThread();
 
     if (!Memory::IsValidVirtualAddress(*kernel.GetCurrentProcess(), handles_address))
         return ERR_INVALID_POINTER;
@@ -647,7 +647,7 @@ ResultCode SVC::ReplyAndReceive(s32* index, VAddr handles_address, s32 handle_co
 
     // We are also sending a command reply.
     // Do not send a reply if the command id in the command buffer is 0xFFFF.
-    Thread* thread = kernel.GetThreadManager().GetCurrentThread();
+    Thread* thread = kernel.GetCurrentThreadManager().GetCurrentThread();
     u32 cmd_buff_header = memory.Read32(thread->GetCommandBufferAddress());
     IPC::Header header{cmd_buff_header};
     if (reply_target != 0 && header.command_id != 0xFFFF) {
@@ -769,7 +769,7 @@ ResultCode SVC::ArbitrateAddress(Handle handle, u32 address, u32 type, u32 value
         return ERR_INVALID_HANDLE;
 
     auto res =
-        arbiter->ArbitrateAddress(SharedFrom(kernel.GetThreadManager().GetCurrentThread()),
+        arbiter->ArbitrateAddress(SharedFrom(kernel.GetCurrentThreadManager().GetCurrentThread()),
                                   static_cast<ArbitrationType>(type), address, value, nanoseconds);
 
     // TODO(Subv): Identify in which specific cases this call should cause a reschedule.
@@ -890,11 +890,10 @@ ResultCode SVC::CreateThread(Handle* out_handle, u32 entry_point, u32 arg, VAddr
         break;
     case ThreadProcessorIdAll:
         LOG_INFO(Kernel_SVC,
-                 "Newly created thread is allowed to be run in any Core, unimplemented.");
+                 "Newly created thread is allowed to be run in any Core, for now run in core 0.");
+                 processor_id = ThreadProcessorId0;
         break;
     case ThreadProcessorId1:
-        LOG_ERROR(Kernel_SVC,
-                  "Newly created thread must run in the SysCore (Core1), unimplemented.");
         break;
     default:
         // TODO(bunnei): Implement support for other processor IDs
@@ -925,7 +924,7 @@ ResultCode SVC::CreateThread(Handle* out_handle, u32 entry_point, u32 arg, VAddr
 void SVC::ExitThread() {
     LOG_TRACE(Kernel_SVC, "called, pc=0x{:08X}", system.CPU().GetPC());
 
-    kernel.GetThreadManager().ExitCurrentThread();
+    kernel.GetCurrentThreadManager().ExitCurrentThread();
     system.PrepareReschedule();
 }
 
@@ -971,7 +970,7 @@ ResultCode SVC::SetThreadPriority(Handle handle, u32 priority) {
 /// Create a mutex
 ResultCode SVC::CreateMutex(Handle* out_handle, u32 initial_locked) {
     std::shared_ptr<Mutex> mutex = kernel.CreateMutex(initial_locked != 0);
-    mutex->name = fmt::format("mutex-{:08x}", system.CPU().GetReg(14));
+    mutex->name = fmt::format("mutex-{:08x}", system.GetRunningCore().GetReg(14));
     CASCADE_RESULT(*out_handle, kernel.GetCurrentProcess()->handle_table.Create(std::move(mutex)));
 
     LOG_TRACE(Kernel_SVC, "called initial_locked={} : created handle=0x{:08X}",
@@ -988,7 +987,7 @@ ResultCode SVC::ReleaseMutex(Handle handle) {
     if (mutex == nullptr)
         return ERR_INVALID_HANDLE;
 
-    return mutex->Release(kernel.GetThreadManager().GetCurrentThread());
+    return mutex->Release(kernel.GetCurrentThreadManager().GetCurrentThread());
 }
 
 /// Get the ID of the specified process
@@ -1038,7 +1037,7 @@ ResultCode SVC::GetThreadId(u32* thread_id, Handle handle) {
 ResultCode SVC::CreateSemaphore(Handle* out_handle, s32 initial_count, s32 max_count) {
     CASCADE_RESULT(std::shared_ptr<Semaphore> semaphore,
                    kernel.CreateSemaphore(initial_count, max_count));
-    semaphore->name = fmt::format("semaphore-{:08x}", system.CPU().GetReg(14));
+    semaphore->name = fmt::format("semaphore-{:08x}", system.GetRunningCore().GetReg(14));
     CASCADE_RESULT(*out_handle,
                    kernel.GetCurrentProcess()->handle_table.Create(std::move(semaphore)));
 
@@ -1109,7 +1108,7 @@ ResultCode SVC::QueryMemory(MemoryInfo* memory_info, PageInfo* page_info, u32 ad
 /// Create an event
 ResultCode SVC::CreateEvent(Handle* out_handle, u32 reset_type) {
     std::shared_ptr<Event> evt = kernel.CreateEvent(
-        static_cast<ResetType>(reset_type), fmt::format("event-{:08x}", system.CPU().GetReg(14)));
+        static_cast<ResetType>(reset_type), fmt::format("event-{:08x}", system.GetRunningCore().GetReg(14)));
     CASCADE_RESULT(*out_handle, kernel.GetCurrentProcess()->handle_table.Create(std::move(evt)));
 
     LOG_TRACE(Kernel_SVC, "called reset_type=0x{:08X} : created handle=0x{:08X}", reset_type,
@@ -1152,7 +1151,7 @@ ResultCode SVC::ClearEvent(Handle handle) {
 /// Creates a timer
 ResultCode SVC::CreateTimer(Handle* out_handle, u32 reset_type) {
     std::shared_ptr<Timer> timer = kernel.CreateTimer(
-        static_cast<ResetType>(reset_type), fmt ::format("timer-{:08x}", system.CPU().GetReg(14)));
+        static_cast<ResetType>(reset_type), fmt ::format("timer-{:08x}", system.GetRunningCore().GetReg(14)));
     CASCADE_RESULT(*out_handle, kernel.GetCurrentProcess()->handle_table.Create(std::move(timer)));
 
     LOG_TRACE(Kernel_SVC, "called reset_type=0x{:08X} : created handle=0x{:08X}", reset_type,
@@ -1206,7 +1205,7 @@ ResultCode SVC::CancelTimer(Handle handle) {
 void SVC::SleepThread(s64 nanoseconds) {
     LOG_TRACE(Kernel_SVC, "called nanoseconds={}", nanoseconds);
 
-    ThreadManager& thread_manager = kernel.GetThreadManager();
+    ThreadManager& thread_manager = kernel.GetCurrentThreadManager();
 
     // Don't attempt to yield execution if there are no available threads to run,
     // this way we avoid a useless reschedule to the idle thread.
@@ -1590,11 +1589,11 @@ void SVC::CallSVC(u32 immediate) {
 SVC::SVC(Core::System& system) : system(system), kernel(system.Kernel()), memory(system.Memory()) {}
 
 u32 SVC::GetReg(std::size_t n) {
-    return system.CPU().GetReg(static_cast<int>(n));
+    return system.GetRunningCore().GetReg(static_cast<int>(n));
 }
 
 void SVC::SetReg(std::size_t n, u32 value) {
-    system.CPU().SetReg(static_cast<int>(n), value);
+    system.GetRunningCore().SetReg(static_cast<int>(n), value);
 }
 
 SVCContext::SVCContext(Core::System& system) : impl(std::make_unique<SVC>(system)) {}

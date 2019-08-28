@@ -58,7 +58,7 @@ enum class ThreadWakeupReason {
 
 class ThreadManager {
 public:
-    explicit ThreadManager(Kernel::KernelSystem& kernel);
+    explicit ThreadManager(Kernel::KernelSystem& kernel, u32 core_id);
     ~ThreadManager();
 
     /**
@@ -150,7 +150,7 @@ private:
 
 class Thread final : public WaitObject {
 public:
-    explicit Thread(KernelSystem&);
+    explicit Thread(KernelSystem&, u32 core_id);
     ~Thread() override;
 
     std::string GetName() const override {
