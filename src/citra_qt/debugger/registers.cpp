@@ -65,11 +65,11 @@ void RegistersWidget::OnDebugModeEntered() {
     for (int i = 0; i < core_registers->childCount(); ++i)
         core_registers->child(i)->setText(
             1,
-            QStringLiteral("0x%1").arg(Core::GetRunningCore().GetReg(i), 8, 16, QLatin1Char('0')));
+            QStringLiteral("0x%1").arg(Core::GetCore(0).GetReg(i), 8, 16, QLatin1Char('0')));
 
     for (int i = 0; i < vfp_registers->childCount(); ++i)
         vfp_registers->child(i)->setText(
-            1, QStringLiteral("0x%1").arg(Core::GetRunningCore().GetVFPReg(i), 8, 16,
+            1, QStringLiteral("0x%1").arg(Core::GetCore(0).GetVFPReg(i), 8, 16,
                                           QLatin1Char('0')));
 
     UpdateCPSRValues();
@@ -131,7 +131,7 @@ void RegistersWidget::CreateCPSRChildren() {
 
 void RegistersWidget::UpdateCPSRValues() {
     // Todo: Handle all cores
-    const u32 cpsr_val = Core::GetRunningCore().GetCPSR();
+    const u32 cpsr_val = Core::GetCore(0).GetCPSR();
 
     cpsr->setText(1, QStringLiteral("0x%1").arg(cpsr_val, 8, 16, QLatin1Char('0')));
     cpsr->child(0)->setText(
@@ -196,10 +196,10 @@ void RegistersWidget::CreateVFPSystemRegisterChildren() {
 
 void RegistersWidget::UpdateVFPSystemRegisterValues() {
     // Todo: handle all cores
-    const u32 fpscr_val = Core::GetRunningCore().GetVFPSystemReg(VFP_FPSCR);
-    const u32 fpexc_val = Core::GetRunningCore().GetVFPSystemReg(VFP_FPEXC);
-    const u32 fpinst_val = Core::GetRunningCore().GetVFPSystemReg(VFP_FPINST);
-    const u32 fpinst2_val = Core::GetRunningCore().GetVFPSystemReg(VFP_FPINST2);
+    const u32 fpscr_val = Core::GetCore(0).GetVFPSystemReg(VFP_FPSCR);
+    const u32 fpexc_val = Core::GetCore(0).GetVFPSystemReg(VFP_FPEXC);
+    const u32 fpinst_val = Core::GetCore(0).GetVFPSystemReg(VFP_FPINST);
+    const u32 fpinst2_val = Core::GetCore(0).GetVFPSystemReg(VFP_FPINST2);
 
     QTreeWidgetItem* const fpscr = vfp_system_registers->child(0);
     fpscr->setText(1, QStringLiteral("0x%1").arg(fpscr_val, 8, 16, QLatin1Char('0')));

@@ -161,11 +161,14 @@ BreakpointMap breakpoints_write;
 
 static Kernel::Thread* FindThreadById(int id) {
     // Todo: Loop over all ThreadManager
-    const auto& threads =
-        Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
-    for (auto& thread : threads) {
-        if (thread->GetThreadId() == static_cast<u32>(id)) {
-            return thread.get();
+    u32 num_cores = Core::GetNumCores();
+    for (u32 i=0; i < num_cores; ++i) {
+        const auto& threads =
+            Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
+        for (auto& thread : threads) {
+            if (thread->GetThreadId() == static_cast<u32>(id)) {
+                return thread.get();
+            }
         }
     }
     return nullptr;
@@ -416,7 +419,10 @@ static void RemoveBreakpoint(BreakpointType type, VAddr addr) {
         Core::System::GetInstance().Memory().WriteBlock(
             *Core::System::GetInstance().Kernel().GetCurrentProcess(), bp->second.addr,
             bp->second.inst.data(), bp->second.inst.size());
-        Core::GetRunningCore().ClearInstructionCache();
+        u32 num_cores = Core::GetNumCores();
+        for (u32 i=0; i < num_cores; ++i) {
+            Core::GetCore(i).ClearInstructionCache();
+        }
     }
     p.erase(addr);
 }
@@ -542,11 +548,13 @@ static void HandleQuery() {
         SendReply(target_xml);
     } else if (strncmp(query, "fThreadInfo", strlen("fThreadInfo")) == 0) {
         std::string val = "m";
-        // Todo: Loop over all ThreadManager
-        const auto& threads =
-            Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
-        for (const auto& thread : threads) {
-            val += fmt::format("{:x},", thread->GetThreadId());
+        u32 num_cores = Core::GetNumCores();
+        for (u32 i=0; i < num_cores; ++i) {
+            const auto& threads =
+                Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
+            for (const auto& thread : threads) {
+                val += fmt::format("{:x},", thread->GetThreadId());
+            }
         }
         val.pop_back();
         SendReply(val.c_str());
@@ -556,12 +564,14 @@ static void HandleQuery() {
         std::string buffer;
         buffer += "l<?xml version=\"1.0\"?>";
         buffer += "<threads>";
-        // Todo: Loop over all ThreadManager
-        const auto& threads =
-            Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
-        for (const auto& thread : threads) {
-            buffer += fmt::format(R"*(<thread id="{:x}" name="Thread {:x}"></thread>)*",
-                                  thread->GetThreadId(), thread->GetThreadId());
+        u32 num_cores = Core::GetNumCores();
+        for (u32 i=0; i < num_cores; ++i) {
+            const auto& threads =
+                Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
+            for (const auto& thread : threads) {
+                buffer += fmt::format(R"*(<thread id="{:x}" name="Thread {:x}"></thread>)*",
+                                      thread->GetThreadId(), thread->GetThreadId());
+            }
         }
         buffer += "</threads>";
         SendReply(buffer.c_str());
