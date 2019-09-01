@@ -42,7 +42,8 @@ namespace Core {
 
 System::ResultStatus System::RunLoop(bool tight_loop) {
     status = ResultStatus::Success;
-    if (std::any_of(cpu_cores.begin(), cpu_cores.end(), [](std::shared_ptr<ARM_Interface> ptr){return ptr == nullptr;})) {
+    if (std::any_of(cpu_cores.begin(), cpu_cores.end(),
+                    [](std::shared_ptr<ARM_Interface> ptr) { return ptr == nullptr; })) {
         return ResultStatus::ErrorNotInitialized;
     }
 
@@ -78,7 +79,8 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     }
 
     if (max_delay > 0) {
-        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id, current_core_to_execute->GetTimer()->GetDowncount());
+        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id,
+                  current_core_to_execute->GetTimer()->GetDowncount());
         running_core = current_core_to_execute.get();
         kernel->SetRunningCPU(current_core_to_execute);
         // TODO: Check only for threads on that core
@@ -105,7 +107,8 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
             cpu_core->GetTimer()->Advance(max_slice);
         }
         for (auto& cpu_core : cpu_cores) {
-            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id, cpu_core->GetTimer()->GetDowncount());
+            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id,
+                      cpu_core->GetTimer()->GetDowncount());
             running_core = cpu_core.get();
             kernel->SetRunningCPU(cpu_core);
             // If we don't have a currently active thread then don't execute instructions,

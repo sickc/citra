@@ -387,7 +387,8 @@ ResultCode SVC::SendSyncRequest(Handle handle) {
 
     system.PrepareReschedule();
 
-    return session->SendSyncRequest(SharedFrom(kernel.GetCurrentThreadManager().GetCurrentThread()));
+    return session->SendSyncRequest(
+        SharedFrom(kernel.GetCurrentThreadManager().GetCurrentThread()));
 }
 
 /// Close a handle
@@ -891,12 +892,16 @@ ResultCode SVC::CreateThread(Handle* out_handle, u32 entry_point, u32 arg, VAddr
     case ThreadProcessorIdAll:
         LOG_INFO(Kernel_SVC,
                  "Newly created thread is allowed to be run in any Core, for now run in core 0.");
-                 processor_id = ThreadProcessorId0;
+        processor_id = ThreadProcessorId0;
         break;
     case ThreadProcessorId1:
     case ThreadProcessorId2:
     case ThreadProcessorId3:
-    // TODO: Check and log for: When processorid==0x2 and the process is not a BASE mem-region process, exheader kernel-flags bitmask 0x2000 must be set (otherwise error 0xD9001BEA is returned). When processorid==0x3 and the process is not a BASE mem-region process, error 0xD9001BEA is returned. These are the only restriction checks done by the kernel for processorid.
+        // TODO: Check and log for: When processorid==0x2 and the process is not a BASE mem-region
+        // process, exheader kernel-flags bitmask 0x2000 must be set (otherwise error 0xD9001BEA is
+        // returned). When processorid==0x3 and the process is not a BASE mem-region process, error
+        // 0xD9001BEA is returned. These are the only restriction checks done by the kernel for
+        // processorid.
         break;
     default:
         ASSERT_MSG(false, "Unsupported thread processor ID: {}", processor_id);
@@ -1109,8 +1114,9 @@ ResultCode SVC::QueryMemory(MemoryInfo* memory_info, PageInfo* page_info, u32 ad
 
 /// Create an event
 ResultCode SVC::CreateEvent(Handle* out_handle, u32 reset_type) {
-    std::shared_ptr<Event> evt = kernel.CreateEvent(
-        static_cast<ResetType>(reset_type), fmt::format("event-{:08x}", system.GetRunningCore().GetReg(14)));
+    std::shared_ptr<Event> evt =
+        kernel.CreateEvent(static_cast<ResetType>(reset_type),
+                           fmt::format("event-{:08x}", system.GetRunningCore().GetReg(14)));
     CASCADE_RESULT(*out_handle, kernel.GetCurrentProcess()->handle_table.Create(std::move(evt)));
 
     LOG_TRACE(Kernel_SVC, "called reset_type=0x{:08X} : created handle=0x{:08X}", reset_type,
@@ -1152,8 +1158,9 @@ ResultCode SVC::ClearEvent(Handle handle) {
 
 /// Creates a timer
 ResultCode SVC::CreateTimer(Handle* out_handle, u32 reset_type) {
-    std::shared_ptr<Timer> timer = kernel.CreateTimer(
-        static_cast<ResetType>(reset_type), fmt ::format("timer-{:08x}", system.GetRunningCore().GetReg(14)));
+    std::shared_ptr<Timer> timer =
+        kernel.CreateTimer(static_cast<ResetType>(reset_type),
+                           fmt ::format("timer-{:08x}", system.GetRunningCore().GetReg(14)));
     CASCADE_RESULT(*out_handle, kernel.GetCurrentProcess()->handle_table.Create(std::move(timer)));
 
     LOG_TRACE(Kernel_SVC, "called reset_type=0x{:08X} : created handle=0x{:08X}", reset_type,

@@ -64,11 +64,13 @@ void RegistersWidget::OnDebugModeEntered() {
     // Todo: Handle all cores
     for (int i = 0; i < core_registers->childCount(); ++i)
         core_registers->child(i)->setText(
-            1, QStringLiteral("0x%1").arg(Core::GetRunningCore().GetReg(i), 8, 16, QLatin1Char('0')));
+            1,
+            QStringLiteral("0x%1").arg(Core::GetRunningCore().GetReg(i), 8, 16, QLatin1Char('0')));
 
     for (int i = 0; i < vfp_registers->childCount(); ++i)
         vfp_registers->child(i)->setText(
-            1, QStringLiteral("0x%1").arg(Core::GetRunningCore().GetVFPReg(i), 8, 16, QLatin1Char('0')));
+            1, QStringLiteral("0x%1").arg(Core::GetRunningCore().GetVFPReg(i), 8, 16,
+                                          QLatin1Char('0')));
 
     UpdateCPSRValues();
     UpdateVFPSystemRegisterValues();

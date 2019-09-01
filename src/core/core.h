@@ -136,7 +136,10 @@ public:
      * @returns True if the emulated system is powered on, otherwise false.
      */
     bool IsPoweredOn() const {
-        return cpu_cores.size() > 0 && std::all_of(cpu_cores.begin(), cpu_cores.end(), [](std::shared_ptr<ARM_Interface> ptr){return ptr != nullptr;});;
+        return cpu_cores.size() > 0 &&
+               std::all_of(cpu_cores.begin(), cpu_cores.end(),
+                           [](std::shared_ptr<ARM_Interface> ptr) { return ptr != nullptr; });
+        ;
     }
 
     /**

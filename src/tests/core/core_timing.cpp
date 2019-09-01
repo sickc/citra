@@ -35,7 +35,7 @@ static void AdvanceAndCheck(Core::TimingManager& timing, u32 idx, int downcount,
     lateness = expected_lateness;
 
     timing.GetTimer(0)->AddTicks(timing.GetTimer(0)->GetDowncount() -
-                    cpu_downcount); // Pretend we executed X cycles of instructions.
+                                 cpu_downcount); // Pretend we executed X cycles of instructions.
     timing.GetTimer(0)->Advance();
 
     REQUIRE(decltype(callbacks_ran_flags)().set(idx) == callbacks_ran_flags);
