@@ -58,7 +58,7 @@ void KernelSystem::SetCurrentProcess(std::shared_ptr<Process> process) {
 }
 
 void KernelSystem::SetCurrentProcessForCPU(std::shared_ptr<Process> process, u32 core_id) {
-    if (current_cpu->id == core_id) {
+    if (current_cpu->GetID() == core_id) {
         current_process = process;
         SetCurrentMemoryPageTable(&process->vm_manager.page_table);
     } else {
@@ -83,12 +83,12 @@ void KernelSystem::SetCPUs(std::vector<std::shared_ptr<ARM_Interface>> cpus) {
 
 void KernelSystem::SetRunningCPU(std::shared_ptr<ARM_Interface> cpu) {
     if (current_process) {
-        stored_processes[current_cpu->id] = current_process;
+        stored_processes[current_cpu->GetID()] = current_process;
     }
     current_cpu = cpu;
-    timing.SetCurrentTimer(cpu->id);
-    if (stored_processes[current_cpu->id]) {
-        SetCurrentProcess(stored_processes[current_cpu->id]);
+    timing.SetCurrentTimer(cpu->GetID());
+    if (stored_processes[current_cpu->GetID()]) {
+        SetCurrentProcess(stored_processes[current_cpu->GetID()]);
     }
 }
 
@@ -101,11 +101,11 @@ const ThreadManager& KernelSystem::GetThreadManager(u32 core_id) const {
 }
 
 ThreadManager& KernelSystem::GetCurrentThreadManager() {
-    return *thread_managers[current_cpu->id];
+    return *thread_managers[current_cpu->GetID()];
 }
 
 const ThreadManager& KernelSystem::GetCurrentThreadManager() const {
-    return *thread_managers[current_cpu->id];
+    return *thread_managers[current_cpu->GetID()];
 }
 
 TimerManager& KernelSystem::GetTimerManager() {

@@ -52,11 +52,8 @@ std::size_t WaitTreeItem::Row() const {
 }
 
 std::vector<std::unique_ptr<WaitTreeThread>> WaitTreeItem::MakeThreadItemList() {
-    u32 num_cores = 2;
-    if (Settings::values.is_new_3ds) {
-        num_cores = 4;
-    }
-        std::vector<std::unique_ptr<WaitTreeThread>> item_list;
+    u32 num_cores = Core::GetNumCores();
+    std::vector<std::unique_ptr<WaitTreeThread>> item_list;
     for (u32 i = 0; i < num_cores; ++i) {
         const auto& threads =
             Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
