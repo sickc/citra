@@ -195,7 +195,7 @@ public:
         u64 idled_cycles;
     };
 
-    TimingManager(System& system, std::size_t num_cores);
+    TimingManager(std::size_t num_cores);
 
     ~TimingManager(){};
 
@@ -211,6 +211,8 @@ public:
 
     /// We only permit one event of each type in the queue at a time.
     void RemoveEvent(const TimingEventType* event_type);
+
+    void SetCurrentTimer(std::size_t core_id);
 
     s64 GetTicks() const;
 
@@ -232,7 +234,7 @@ private:
     std::unordered_map<std::string, TimingEventType> event_types;
 
     std::unordered_map<std::size_t, std::shared_ptr<Timer>> timers;
-    System& system;
+    std::shared_ptr<Timer> current_timer;
 };
 
 using SharedTimer = std::shared_ptr<TimingManager::Timer>;

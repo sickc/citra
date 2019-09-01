@@ -236,41 +236,39 @@ void System::Reschedule() {
 System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mode) {
     LOG_DEBUG(HW_Memory, "initialized OK");
 
-    // TODO: check settings for n3ds mode and change value accordingly
-    constexpr std::size_t num_cores = 2;
+    std::size_t num_cores = 2;
+    if (Settings::values.is_new_3ds) {
+        num_cores = 4;
+    }
 
     memory = std::make_unique<Memory::MemorySystem>();
 
-    timing = std::make_unique<TimingManager>(*this, num_cores);
+    timing = std::make_unique<TimingManager>(num_cores);
 
     kernel = std::make_unique<Kernel::KernelSystem>(
         *memory, *timing, [this] { PrepareReschedule(); }, system_mode, num_cores);
 
-    // TODO: create cores properly
     if (Settings::values.use_cpu_jit) {
 #ifdef ARCHITECTURE_x86_64
-        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
 #else
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
     }
     running_core = cpu_cores[0].get();
 
@@ -404,9 +402,7 @@ void System::Shutdown() {
     cheat_engine.reset();
     service_manager.reset();
     dsp_core.reset();
-    for (auto& cpu_core : cpu_cores) {
-        cpu_core.reset();
-    }
+    cpu_cores.clear();
     kernel.reset();
     timing.reset();
     app_loader.reset();

@@ -894,9 +894,11 @@ ResultCode SVC::CreateThread(Handle* out_handle, u32 entry_point, u32 arg, VAddr
                  processor_id = ThreadProcessorId0;
         break;
     case ThreadProcessorId1:
+    case ThreadProcessorId2:
+    case ThreadProcessorId3:
+    // TODO: Check and log for: When processorid==0x2 and the process is not a BASE mem-region process, exheader kernel-flags bitmask 0x2000 must be set (otherwise error 0xD9001BEA is returned). When processorid==0x3 and the process is not a BASE mem-region process, error 0xD9001BEA is returned. These are the only restriction checks done by the kernel for processorid.
         break;
     default:
-        // TODO(bunnei): Implement support for other processor IDs
         ASSERT_MSG(false, "Unsupported thread processor ID: {}", processor_id);
         break;
     }

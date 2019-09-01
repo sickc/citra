@@ -21,10 +21,11 @@ bool TimingManager::Event::operator<(const TimingManager::Event& right) const {
     return std::tie(time, fifo_order) < std::tie(right.time, right.fifo_order);
 }
 
-TimingManager::TimingManager(System& system, std::size_t num_cores) : system(system) {
+TimingManager::TimingManager(std::size_t num_cores) {
     for (std::size_t i = 0; i < num_cores; ++i) {
         timers[i] = std::make_shared<Timer>();
     }
+    current_timer = timers[0];
 }
 
 TimingEventType* TimingManager::RegisterEvent(const std::string& name, TimedCallback callback) {
@@ -46,7 +47,7 @@ void TimingManager::ScheduleEvent(s64 cycles_into_future, const TimingEventType*
     ASSERT(event_type != nullptr);
     SharedTimer timer;
     if (core_id == std::numeric_limits<std::size_t>::max()) {
-        timer = system.GetRunningCore().GetTimer();
+        timer = current_timer;
     } else {
         auto timer_it = timers.find(core_id);
         ASSERT(timer_it != timers.end());
@@ -54,7 +55,7 @@ void TimingManager::ScheduleEvent(s64 cycles_into_future, const TimingEventType*
     }
 
     s64 timeout = timer->GetTicks() + cycles_into_future;
-    if (system.initalized && system.GetRunningCore().GetTimer() == timer) {
+    if (current_timer == timer) {
         // If this event needs to be scheduled before the next advance(), force one early
         if (!timer->is_timer_sane)
             timer->ForceExceptionCheck(cycles_into_future);
@@ -100,8 +101,12 @@ void TimingManager::RemoveEvent(const TimingEventType* event_type) {
     // TODO:remove events from ts_queue
 }
 
+void TimingManager::SetCurrentTimer(std::size_t core_id) {
+    current_timer = timers[core_id];
+}
+
 s64 TimingManager::GetTicks() const {
-    return system.GetRunningCore().GetTimer()->GetTicks();
+    return current_timer->GetTicks();
 }
 
 s64 TimingManager::GetGlobalTicks() const {

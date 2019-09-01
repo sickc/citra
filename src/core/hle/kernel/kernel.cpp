@@ -83,6 +83,7 @@ void KernelSystem::SetRunningCPU(std::shared_ptr<ARM_Interface> cpu) {
         stored_processes[current_cpu->id] = current_process;
     }
     current_cpu = cpu;
+    timing.SetCurrentTimer(cpu->id);
     if (stored_processes[current_cpu->id]) {
         SetCurrentProcess(stored_processes[current_cpu->id]);
     }
