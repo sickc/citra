@@ -96,7 +96,7 @@ DspHle::Impl::Impl(DspHle& parent_, Memory::MemorySystem& memory) : parent(paren
     decoder = std::make_unique<HLE::NullDecoder>();
 #endif // HAVE_MF
 
-    Core::TimingManager& timing = Core::System::GetInstance().CoreTiming();
+    Core::Timing& timing = Core::System::GetInstance().CoreTiming();
     tick_event =
         timing.RegisterEvent("AudioCore::DspHle::tick_event", [this](u64, s64 cycles_late) {
             this->AudioTickCallback(cycles_late);
@@ -105,7 +105,7 @@ DspHle::Impl::Impl(DspHle& parent_, Memory::MemorySystem& memory) : parent(paren
 }
 
 DspHle::Impl::~Impl() {
-    Core::TimingManager& timing = Core::System::GetInstance().CoreTiming();
+    Core::Timing& timing = Core::System::GetInstance().CoreTiming();
     timing.UnscheduleEvent(tick_event, 0);
 }
 
@@ -400,7 +400,7 @@ void DspHle::Impl::AudioTickCallback(s64 cycles_late) {
     }
 
     // Reschedule recurrent event
-    Core::TimingManager& timing = Core::System::GetInstance().CoreTiming();
+    Core::Timing& timing = Core::System::GetInstance().CoreTiming();
     timing.ScheduleEvent(audio_frame_ticks - cycles_late, tick_event);
 }
 

@@ -84,7 +84,7 @@ private:
     std::shared_ptr<TestMemory> test_memory;
     std::vector<WriteRecord> write_records;
 
-    std::unique_ptr<Core::TimingManager> timing;
+    std::unique_ptr<Core::Timing> timing;
     std::unique_ptr<Memory::MemorySystem> memory;
     std::unique_ptr<Kernel::KernelSystem> kernel;
 };

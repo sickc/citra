@@ -55,7 +55,7 @@ class Backend;
 
 namespace Core {
 
-class TimingManager;
+class Timing;
 
 class System {
 public:
@@ -211,10 +211,10 @@ public:
     const Kernel::KernelSystem& Kernel() const;
 
     /// Gets a reference to the timing system
-    TimingManager& CoreTiming();
+    Timing& CoreTiming();
 
     /// Gets a const reference to the timing system
-    const TimingManager& CoreTiming() const;
+    const Timing& CoreTiming() const;
 
     /// Gets a reference to the memory system
     Memory::MemorySystem& Memory();
@@ -317,7 +317,7 @@ private:
 
     std::unique_ptr<Memory::MemorySystem> memory;
     std::unique_ptr<Kernel::KernelSystem> kernel;
-    std::unique_ptr<TimingManager> timing;
+    std::unique_ptr<Timing> timing;
 
 private:
     static System s_instance;

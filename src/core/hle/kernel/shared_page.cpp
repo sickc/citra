@@ -37,7 +37,7 @@ static std::chrono::seconds GetInitTime() {
     }
 }
 
-Handler::Handler(Core::TimingManager& timing) : timing(timing) {
+Handler::Handler(Core::Timing& timing) : timing(timing) {
     std::memset(&shared_page, 0, sizeof(shared_page));
 
     shared_page.running_hw = 0x1; // product

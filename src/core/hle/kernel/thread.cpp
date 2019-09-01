@@ -86,7 +86,7 @@ void Thread::Stop() {
 void ThreadManager::SwitchContext(Thread* new_thread) {
     Thread* previous_thread = GetCurrentThread();
 
-    Core::TimingManager& timing = kernel.timing;
+    Core::Timing& timing = kernel.timing;
 
     // Save context for previous thread
     if (previous_thread) {

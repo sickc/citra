@@ -99,7 +99,7 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         // Now all cores are at the same global time. So we will run them one after the other
         // with a max slice that is the minimum of all max slices of all cores
         // TODO: Make special check for idle since we can easily revert the time of idle cores
-        s64 max_slice = TimingManager::MAX_SLICE_LENGTH;
+        s64 max_slice = Timing::MAX_SLICE_LENGTH;
         for (const auto& cpu_core : cpu_cores) {
             max_slice = std::min(max_slice, cpu_core->GetTimer()->GetMaxSliceLength());
         }
@@ -245,7 +245,7 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
 
     memory = std::make_unique<Memory::MemorySystem>();
 
-    timing = std::make_unique<TimingManager>(num_cores);
+    timing = std::make_unique<Timing>(num_cores);
 
     kernel = std::make_unique<Kernel::KernelSystem>(
         *memory, *timing, [this] { PrepareReschedule(); }, system_mode, num_cores);
@@ -339,11 +339,11 @@ const Kernel::KernelSystem& System::Kernel() const {
     return *kernel;
 }
 
-TimingManager& System::CoreTiming() {
+Timing& System::CoreTiming() {
     return *timing;
 }
 
-const TimingManager& System::CoreTiming() const {
+const Timing& System::CoreTiming() const {
     return *timing;
 }
 
