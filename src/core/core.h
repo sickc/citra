@@ -165,6 +165,20 @@ public:
     };
 
     /**
+     * Gets a reference to the emulated CPU.
+     * @param core_id The id of the core requested.
+     * @returns A reference to the emulated CPU.
+     */
+
+    ARM_Interface& GetCore(u32 core_id) {
+        return *cpu_cores[core_id];
+    };
+
+    u32 GetNumCores() const {
+        return cpu_cores.size();
+    }
+
+    /**
      * Gets a reference to the emulated DSP.
      * @returns A reference to the emulated DSP.
      */
@@ -320,6 +334,14 @@ private:
 
 inline ARM_Interface& GetRunningCore() {
     return System::GetInstance().GetRunningCore();
+}
+
+inline ARM_Interface& GetCore(u32 core_id) {
+    return System::GetInstance().GetCore(core_id);
+}
+
+inline u32 GetNumCores() {
+    return System::GetInstance().GetNumCores();
 }
 
 inline AudioCore::DspInterface& DSP() {

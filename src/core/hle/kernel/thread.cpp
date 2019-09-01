@@ -33,8 +33,14 @@ void Thread::Acquire(Thread* thread) {
     ASSERT_MSG(!ShouldWait(thread), "object unavailable!");
 }
 
+u32 ThreadManager::next_thread_id = 1;
+
 u32 ThreadManager::NewThreadId() {
     return next_thread_id++;
+}
+
+void ThreadManager::ResetThreadIDs() {
+    next_thread_id = 0;
 }
 
 Thread::Thread(KernelSystem& kernel, u32 core_id)

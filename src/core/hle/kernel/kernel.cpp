@@ -32,7 +32,9 @@ KernelSystem::KernelSystem(Memory::MemorySystem& memory, Core::TimingManager& ti
 }
 
 /// Shutdown the kernel
-KernelSystem::~KernelSystem() = default;
+KernelSystem::~KernelSystem() {
+    ThreadManager::ResetThreadIDs();
+};
 
 ResourceLimitList& KernelSystem::ResourceLimit() {
     return *resource_limits;
