@@ -21,7 +21,7 @@ class MemorySystem;
 class ARM_DynCom final : public ARM_Interface {
 public:
     explicit ARM_DynCom(Core::System* system, Memory::MemorySystem& memory,
-                        PrivilegeMode initial_mode);
+                        PrivilegeMode initial_mode, u32 id, Core::SharedTimer timer);
     ~ARM_DynCom() override;
 
     void Run() override;

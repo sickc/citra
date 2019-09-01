@@ -14,6 +14,7 @@
 /// Generic ARM11 CPU interface
 class ARM_Interface : NonCopyable {
 public:
+    explicit ARM_Interface(u32 id, Core::SharedTimer timer) : timer(timer), id(id){};
     virtual ~ARM_Interface() {}
 
     class ThreadContext {
@@ -174,16 +175,17 @@ public:
     /// Prepare core for thread reschedule (if needed to correctly handle state)
     virtual void PrepareReschedule() = 0;
 
-    void SetTimer(std::shared_ptr<Core::TimingManager::Timer> new_timer) {
-        timer = new_timer;
-    }
-
     std::shared_ptr<Core::TimingManager::Timer> GetTimer() {
         return timer;
     }
 
-    u32 id;
+    u32 GetID() const {
+        return id;
+    }
 
 protected:
-    Core::SharedTimer timer = nullptr;
+    Core::SharedTimer timer;
+
+private:
+    u32 id;
 };

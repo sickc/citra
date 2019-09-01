@@ -36,7 +36,7 @@ static inline std::enable_if_t<std::is_integral_v<T>> WriteOp(const GatewayCheat
     u32 addr = line.address + state.offset;
     write_func(addr, static_cast<T>(line.value));
     u32 num_cores = system.GetNumCores();
-    for (u32 i=0; i < num_cores; ++i) {
+    for (u32 i = 0; i < num_cores; ++i) {
         system.GetCore(i).InvalidateCacheRange(addr, sizeof(T));
     }
 }
@@ -109,7 +109,7 @@ static inline std::enable_if_t<std::is_integral_v<T>> IncrementiveWriteOp(
     u32 addr = line.value + state.offset;
     write_func(addr, static_cast<T>(state.reg));
     u32 num_cores = system.GetNumCores();
-    for (u32 i=0; i < num_cores; ++i) {
+    for (u32 i = 0; i < num_cores; ++i) {
         system.GetCore(i).InvalidateCacheRange(addr, sizeof(T));
     }
     state.offset += sizeof(T);
@@ -150,7 +150,7 @@ static inline void PatchOp(const GatewayCheat::CheatLine& line, State& state, Co
     u32 num_bytes = line.value;
     u32 addr = line.address + state.offset;
     u32 num_cores = system.GetNumCores();
-    for (u32 i=0; i < num_cores; ++i) {
+    for (u32 i = 0; i < num_cores; ++i) {
         system.GetCore(i).InvalidateCacheRange(addr, num_bytes);
     }
     bool first = true;

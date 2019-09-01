@@ -160,9 +160,8 @@ BreakpointMap breakpoints_write;
 } // Anonymous namespace
 
 static Kernel::Thread* FindThreadById(int id) {
-    // Todo: Loop over all ThreadManager
     u32 num_cores = Core::GetNumCores();
-    for (u32 i=0; i < num_cores; ++i) {
+    for (u32 i = 0; i < num_cores; ++i) {
         const auto& threads =
             Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
         for (auto& thread : threads) {
@@ -420,7 +419,7 @@ static void RemoveBreakpoint(BreakpointType type, VAddr addr) {
             *Core::System::GetInstance().Kernel().GetCurrentProcess(), bp->second.addr,
             bp->second.inst.data(), bp->second.inst.size());
         u32 num_cores = Core::GetNumCores();
-        for (u32 i=0; i < num_cores; ++i) {
+        for (u32 i = 0; i < num_cores; ++i) {
             Core::GetCore(i).ClearInstructionCache();
         }
     }
@@ -549,7 +548,7 @@ static void HandleQuery() {
     } else if (strncmp(query, "fThreadInfo", strlen("fThreadInfo")) == 0) {
         std::string val = "m";
         u32 num_cores = Core::GetNumCores();
-        for (u32 i=0; i < num_cores; ++i) {
+        for (u32 i = 0; i < num_cores; ++i) {
             const auto& threads =
                 Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
             for (const auto& thread : threads) {
@@ -565,7 +564,7 @@ static void HandleQuery() {
         buffer += "l<?xml version=\"1.0\"?>";
         buffer += "<threads>";
         u32 num_cores = Core::GetNumCores();
-        for (u32 i=0; i < num_cores; ++i) {
+        for (u32 i = 0; i < num_cores; ++i) {
             const auto& threads =
                 Core::System::GetInstance().Kernel().GetThreadManager(i).GetThreadList();
             for (const auto& thread : threads) {

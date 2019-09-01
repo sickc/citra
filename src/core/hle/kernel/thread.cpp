@@ -83,7 +83,6 @@ void Thread::Stop() {
     owner_process->tls_slots[tls_page].reset(tls_slot);
 }
 
-// TODO: Make this ready for multiple cores
 void ThreadManager::SwitchContext(Thread* new_thread) {
     Thread* previous_thread = GetCurrentThread();
 
@@ -118,7 +117,7 @@ void ThreadManager::SwitchContext(Thread* new_thread) {
         new_thread->status = ThreadStatus::Running;
 
         if (previous_process.get() != current_thread->owner_process) {
-            kernel.SetCurrentProcessForCPU(SharedFrom(current_thread->owner_process), cpu->id);
+            kernel.SetCurrentProcessForCPU(SharedFrom(current_thread->owner_process), cpu->GetID());
         }
 
         cpu->LoadContext(new_thread->context);

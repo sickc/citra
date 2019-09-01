@@ -81,13 +81,13 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     }
 
     if (max_delay > 0) {
-        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id,
+        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks",
+                  current_core_to_execute->GetID(),
                   current_core_to_execute->GetTimer()->GetDowncount());
         running_core = current_core_to_execute.get();
         kernel->SetRunningCPU(current_core_to_execute);
-        // TODO: Check only for threads on that core
         if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
-            LOG_TRACE(Core_ARM11, "Core {} idling", current_core_to_execute->id);
+            LOG_TRACE(Core_ARM11, "Core {} idling", current_core_to_execute->GetID());
             current_core_to_execute->GetTimer()->Idle();
             PrepareReschedule();
         } else {
@@ -109,15 +109,14 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
             cpu_core->GetTimer()->Advance(max_slice);
         }
         for (auto& cpu_core : cpu_cores) {
-            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id,
+            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->GetID(),
                       cpu_core->GetTimer()->GetDowncount());
             running_core = cpu_core.get();
             kernel->SetRunningCPU(cpu_core);
             // If we don't have a currently active thread then don't execute instructions,
             // instead advance to the next event and try to yield to the next thread
-            // TODO: Check only for threads on that core
             if (kernel->GetCurrentThreadManager().GetCurrentThread() == nullptr) {
-                LOG_TRACE(Core_ARM11, "Core {} idling", cpu_core->id);
+                LOG_TRACE(Core_ARM11, "Core {} idling", cpu_core->GetID());
                 cpu_core->GetTimer()->Idle();
                 PrepareReschedule();
             } else {
@@ -242,8 +241,8 @@ void System::Reschedule() {
 
     reschedule_pending = false;
     for (auto core : cpu_cores) {
-        LOG_TRACE(Core_ARM11, "Reschedule core {}", core->id);
-        kernel->GetThreadManager(core->id).Reschedule();
+        LOG_TRACE(Core_ARM11, "Reschedule core {}", core->GetID());
+        kernel->GetThreadManager(core->GetID()).Reschedule();
     }
 }
 
@@ -265,23 +264,20 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
     if (Settings::values.use_cpu_jit) {
 #ifdef ARCHITECTURE_x86_64
         for (std::size_t i = 0; i < num_cores; ++i) {
-            cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
-            cpu_cores.back()->SetTimer(timing->GetTimer(i));
-            cpu_cores.back()->id = i;
+            cpu_cores.push_back(
+                std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE, i, timing->GetTimer(i)));
         }
 #else
         for (std::size_t i = 0; i < num_cores; ++i) {
-            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-            cpu_cores.back()->SetTimer(timing->GetTimer(i));
-            cpu_cores.back()->id = i;
+            cpu_cores.push_back(
+                std::make_shared<ARM_DynCom>(this, *memory, USER32MODE, i, timing->GetTimer(i)));
         }
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
         for (std::size_t i = 0; i < num_cores; ++i) {
-            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-            cpu_cores.back()->SetTimer(timing->GetTimer(i));
-            cpu_cores.back()->id = i;
+            cpu_cores.push_back(
+                std::make_shared<ARM_DynCom>(this, *memory, USER32MODE, i, timing->GetTimer(i)));
         }
     }
     running_core = cpu_cores[0].get();
