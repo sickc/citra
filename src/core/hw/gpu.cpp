@@ -558,7 +558,7 @@ void Init(Memory::MemorySystem& memory) {
     framebuffer_sub.color_format.Assign(Regs::PixelFormat::RGB8);
     framebuffer_sub.active_fb = 0;
 
-    Core::TimingManager& timing = Core::System::GetInstance().CoreTiming();
+    Core::Timing& timing = Core::System::GetInstance().CoreTiming();
     vblank_event = timing.RegisterEvent("GPU::VBlankCallback", VBlankCallback);
     timing.ScheduleEvent(frame_ticks, vblank_event);
 

@@ -64,8 +64,7 @@ enum class ResponseID : u8 {
     ReadCalibrationData = 0x11,
 };
 
-ExtraHID::ExtraHID(SendFunc send_func, Core::TimingManager& timing)
-    : IRDevice(send_func), timing(timing) {
+ExtraHID::ExtraHID(SendFunc send_func, Core::Timing& timing) : IRDevice(send_func), timing(timing) {
     LoadInputDevices();
 
     // The data below was retrieved from a New 3DS

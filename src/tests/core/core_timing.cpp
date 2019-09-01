@@ -28,8 +28,8 @@ void CallbackTemplate(u64 userdata, s64 cycles_late) {
     REQUIRE(lateness == cycles_late);
 }
 
-static void AdvanceAndCheck(Core::TimingManager& timing, u32 idx, int downcount,
-                            int expected_lateness = 0, int cpu_downcount = 0) {
+static void AdvanceAndCheck(Core::Timing& timing, u32 idx, int downcount, int expected_lateness = 0,
+                            int cpu_downcount = 0) {
     callbacks_ran_flags = 0;
     expected_callback = CB_IDS[idx];
     lateness = expected_lateness;
@@ -43,7 +43,7 @@ static void AdvanceAndCheck(Core::TimingManager& timing, u32 idx, int downcount,
 }
 
 TEST_CASE("CoreTiming[BasicOrder]", "[core]") {
-    Core::TimingManager timing(1);
+    Core::Timing timing(1);
 
     Core::TimingEventType* cb_a = timing.RegisterEvent("callbackA", CallbackTemplate<0>);
     Core::TimingEventType* cb_b = timing.RegisterEvent("callbackB", CallbackTemplate<1>);
@@ -90,7 +90,7 @@ void FifoCallback(u64 userdata, s64 cycles_late) {
 TEST_CASE("CoreTiming[SharedSlot]", "[core]") {
     using namespace SharedSlotTest;
 
-    Core::TimingManager timing(1);
+    Core::Timing timing(1);
 
     Core::TimingEventType* cb_a = timing.RegisterEvent("callbackA", FifoCallback<0>);
     Core::TimingEventType* cb_b = timing.RegisterEvent("callbackB", FifoCallback<1>);
@@ -118,7 +118,7 @@ TEST_CASE("CoreTiming[SharedSlot]", "[core]") {
 }
 
 TEST_CASE("CoreTiming[PredictableLateness]", "[core]") {
-    Core::TimingManager timing(1);
+    Core::Timing timing(1);
 
     Core::TimingEventType* cb_a = timing.RegisterEvent("callbackA", CallbackTemplate<0>);
     Core::TimingEventType* cb_b = timing.RegisterEvent("callbackB", CallbackTemplate<1>);
@@ -136,7 +136,7 @@ TEST_CASE("CoreTiming[PredictableLateness]", "[core]") {
 namespace ChainSchedulingTest {
 static int reschedules = 0;
 
-static void RescheduleCallback(Core::TimingManager& timing, u64 userdata, s64 cycles_late) {
+static void RescheduleCallback(Core::Timing& timing, u64 userdata, s64 cycles_late) {
     --reschedules;
     REQUIRE(reschedules >= 0);
     REQUIRE(lateness == cycles_late);
@@ -149,7 +149,7 @@ static void RescheduleCallback(Core::TimingManager& timing, u64 userdata, s64 cy
 TEST_CASE("CoreTiming[ChainScheduling]", "[core]") {
     using namespace ChainSchedulingTest;
 
-    Core::TimingManager timing(1);
+    Core::Timing timing(1);
 
     Core::TimingEventType* cb_a = timing.RegisterEvent("callbackA", CallbackTemplate<0>);
     Core::TimingEventType* cb_b = timing.RegisterEvent("callbackB", CallbackTemplate<1>);

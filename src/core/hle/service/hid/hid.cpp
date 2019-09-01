@@ -385,7 +385,7 @@ Module::Module(Core::System& system) : system(system) {
     event_debug_pad = system.Kernel().CreateEvent(ResetType::OneShot, "HID:EventDebugPad");
 
     // Register update callbacks
-    Core::TimingManager& timing = system.CoreTiming();
+    Core::Timing& timing = system.CoreTiming();
     pad_update_event =
         timing.RegisterEvent("HID::UpdatePadCallback", [this](u64 userdata, s64 cycles_late) {
             UpdatePadCallback(userdata, cycles_late);

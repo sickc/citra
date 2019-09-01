@@ -13,22 +13,22 @@
 namespace Core {
 
 // Sort by time, unless the times are the same, in which case sort by the order added to the queue
-bool TimingManager::Event::operator>(const TimingManager::Event& right) const {
+bool Timing::Event::operator>(const Timing::Event& right) const {
     return std::tie(time, fifo_order) > std::tie(right.time, right.fifo_order);
 }
 
-bool TimingManager::Event::operator<(const TimingManager::Event& right) const {
+bool Timing::Event::operator<(const Timing::Event& right) const {
     return std::tie(time, fifo_order) < std::tie(right.time, right.fifo_order);
 }
 
-TimingManager::TimingManager(std::size_t num_cores) {
+Timing::Timing(std::size_t num_cores) {
     for (std::size_t i = 0; i < num_cores; ++i) {
         timers[i] = std::make_shared<Timer>();
     }
     current_timer = timers[0];
 }
 
-TimingEventType* TimingManager::RegisterEvent(const std::string& name, TimedCallback callback) {
+TimingEventType* Timing::RegisterEvent(const std::string& name, TimedCallback callback) {
     // check for existing type with same name.
     // we want event type names to remain unique so that we can use them for serialization.
     ASSERT_MSG(event_types.find(name) == event_types.end(),
@@ -42,8 +42,8 @@ TimingEventType* TimingManager::RegisterEvent(const std::string& name, TimedCall
     return event_type;
 }
 
-void TimingManager::ScheduleEvent(s64 cycles_into_future, const TimingEventType* event_type,
-                                  u64 userdata, std::size_t core_id) {
+void Timing::ScheduleEvent(s64 cycles_into_future, const TimingEventType* event_type, u64 userdata,
+                           std::size_t core_id) {
     ASSERT(event_type != nullptr);
     SharedTimer timer;
     if (core_id == std::numeric_limits<std::size_t>::max()) {
@@ -69,7 +69,7 @@ void TimingManager::ScheduleEvent(s64 cycles_into_future, const TimingEventType*
     }
 }
 
-void TimingManager::UnscheduleEvent(const TimingEventType* event_type, u64 userdata) {
+void Timing::UnscheduleEvent(const TimingEventType* event_type, u64 userdata) {
     for (auto timer : timers) {
         auto itr = std::remove_if(
             timer.second->event_queue.begin(), timer.second->event_queue.end(),
@@ -85,7 +85,7 @@ void TimingManager::UnscheduleEvent(const TimingEventType* event_type, u64 userd
     // TODO:remove events from ts_queue
 }
 
-void TimingManager::RemoveEvent(const TimingEventType* event_type) {
+void Timing::RemoveEvent(const TimingEventType* event_type) {
     for (auto timer : timers) {
         auto itr =
             std::remove_if(timer.second->event_queue.begin(), timer.second->event_queue.end(),
@@ -101,31 +101,31 @@ void TimingManager::RemoveEvent(const TimingEventType* event_type) {
     // TODO:remove events from ts_queue
 }
 
-void TimingManager::SetCurrentTimer(std::size_t core_id) {
+void Timing::SetCurrentTimer(std::size_t core_id) {
     current_timer = timers[core_id];
 }
 
-s64 TimingManager::GetTicks() const {
+s64 Timing::GetTicks() const {
     return current_timer->GetTicks();
 }
 
-s64 TimingManager::GetGlobalTicks() const {
+s64 Timing::GetGlobalTicks() const {
     return global_timer;
 }
 
-std::chrono::microseconds TimingManager::GetGlobalTimeUs() const {
+std::chrono::microseconds Timing::GetGlobalTimeUs() const {
     return std::chrono::microseconds{GetTicks() * 1000000 / BASE_CLOCK_RATE_ARM11};
 }
 
-SharedTimer TimingManager::GetTimer(std::size_t cpu_id) {
+SharedTimer Timing::GetTimer(std::size_t cpu_id) {
     return timers[cpu_id];
 }
 
-TimingManager::Timer::~Timer() {
+Timing::Timer::~Timer() {
     MoveEvents();
 }
 
-u64 TimingManager::Timer::GetTicks() const {
+u64 Timing::Timer::GetTicks() const {
     u64 ticks = static_cast<u64>(executed_ticks);
     if (!is_timer_sane) {
         ticks += slice_length - downcount;
@@ -133,15 +133,15 @@ u64 TimingManager::Timer::GetTicks() const {
     return ticks;
 }
 
-void TimingManager::Timer::AddTicks(u64 ticks) {
+void Timing::Timer::AddTicks(u64 ticks) {
     downcount -= ticks;
 }
 
-u64 TimingManager::Timer::GetIdleTicks() const {
+u64 Timing::Timer::GetIdleTicks() const {
     return static_cast<u64>(idled_cycles);
 }
 
-void TimingManager::Timer::ForceExceptionCheck(s64 cycles) {
+void Timing::Timer::ForceExceptionCheck(s64 cycles) {
     cycles = std::max<s64>(0, cycles);
     if (downcount > cycles) {
         slice_length -= downcount - cycles;
@@ -149,7 +149,7 @@ void TimingManager::Timer::ForceExceptionCheck(s64 cycles) {
     }
 }
 
-void TimingManager::Timer::MoveEvents() {
+void Timing::Timer::MoveEvents() {
     for (Event ev; ts_queue.Pop(ev);) {
         ev.fifo_order = event_fifo_id++;
         event_queue.emplace_back(std::move(ev));
@@ -157,7 +157,7 @@ void TimingManager::Timer::MoveEvents() {
     }
 }
 
-s64 TimingManager::Timer::GetMaxSliceLength() const {
+s64 Timing::Timer::GetMaxSliceLength() const {
     auto next_event = std::find_if(event_queue.begin(), event_queue.end(),
                                    [&](const Event& e) { return e.time - executed_ticks > 0; });
     if (next_event != event_queue.end()) {
@@ -166,7 +166,7 @@ s64 TimingManager::Timer::GetMaxSliceLength() const {
     return MAX_SLICE_LENGTH;
 }
 
-void TimingManager::Timer::Advance(s64 max_slice_length) {
+void Timing::Timer::Advance(s64 max_slice_length) {
     MoveEvents();
 
     s64 cycles_executed = slice_length - downcount;
@@ -194,12 +194,12 @@ void TimingManager::Timer::Advance(s64 max_slice_length) {
     downcount = slice_length;
 }
 
-void TimingManager::Timer::Idle() {
+void Timing::Timer::Idle() {
     idled_cycles += downcount;
     downcount = 0;
 }
 
-s64 TimingManager::Timer::GetDowncount() const {
+s64 Timing::Timer::GetDowncount() const {
     return downcount;
 }
 

@@ -175,7 +175,7 @@ public:
     /// Prepare core for thread reschedule (if needed to correctly handle state)
     virtual void PrepareReschedule() = 0;
 
-    std::shared_ptr<Core::TimingManager::Timer> GetTimer() {
+    std::shared_ptr<Core::Timing::Timer> GetTimer() {
         return timer;
     }
 

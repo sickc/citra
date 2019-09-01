@@ -134,7 +134,7 @@ struct TimingEventType {
     const std::string* name;
 };
 
-class TimingManager {
+class Timing {
 public:
     struct Event {
         s64 time;
@@ -170,7 +170,7 @@ public:
         void MoveEvents();
 
     private:
-        friend class TimingManager;
+        friend class Timing;
         // The queue is a min-heap using std::make_heap/push_heap/pop_heap.
         // We don't use std::priority_queue because we need to be able to serialize, unserialize and
         // erase arbitrary events (RemoveEvent()) regardless of the queue order. These aren't
@@ -195,9 +195,9 @@ public:
         u64 idled_cycles;
     };
 
-    TimingManager(std::size_t num_cores);
+    Timing(std::size_t num_cores);
 
-    ~TimingManager(){};
+    ~Timing(){};
 
     /**
      * Returns the event_type identifier. if name is not unique, it will assert.
@@ -237,6 +237,6 @@ private:
     std::shared_ptr<Timer> current_timer;
 };
 
-using SharedTimer = std::shared_ptr<TimingManager::Timer>;
+using SharedTimer = std::shared_ptr<Timing::Timer>;
 
 } // namespace Core

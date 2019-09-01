@@ -84,7 +84,7 @@ static_assert(sizeof(SharedPageDef) == Memory::SHARED_PAGE_SIZE,
 
 class Handler {
 public:
-    Handler(Core::TimingManager& timing);
+    Handler(Core::Timing& timing);
 
     void SetMacAddress(const MacAddress&);
 
@@ -99,7 +99,7 @@ public:
 private:
     u64 GetSystemTime() const;
     void UpdateTimeCallback(u64 userdata, int cycles_late);
-    Core::TimingManager& timing;
+    Core::Timing& timing;
     Core::TimingEventType* update_time_event;
     std::chrono::seconds init_time;
 

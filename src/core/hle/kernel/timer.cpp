@@ -104,7 +104,7 @@ void TimerManager::TimerCallback(u64 callback_id, s64 cycles_late) {
     timer->Signal(cycles_late);
 }
 
-TimerManager::TimerManager(Core::TimingManager& timing) : timing(timing) {
+TimerManager::TimerManager(Core::Timing& timing) : timing(timing) {
     timer_callback_event_type =
         timing.RegisterEvent("TimerCallback", [this](u64 thread_id, s64 cycle_late) {
             TimerCallback(thread_id, cycle_late);

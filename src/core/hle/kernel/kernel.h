@@ -29,7 +29,7 @@ class MemorySystem;
 }
 
 namespace Core {
-class TimingManager;
+class Timing;
 }
 
 namespace IPCDebugger {
@@ -84,7 +84,7 @@ enum class MemoryRegion : u16 {
 
 class KernelSystem {
 public:
-    explicit KernelSystem(Memory::MemorySystem& memory, Core::TimingManager& timing,
+    explicit KernelSystem(Memory::MemorySystem& memory, Core::Timing& timing,
                           std::function<void()> prepare_reschedule_callback, u32 system_mode,
                           u32 num_cores);
     ~KernelSystem();
@@ -256,7 +256,7 @@ public:
 
     Memory::MemorySystem& memory;
 
-    Core::TimingManager& timing;
+    Core::Timing& timing;
 
 private:
     void MemoryInit(u32 mem_type);
