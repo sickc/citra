@@ -52,7 +52,8 @@ std::size_t WaitTreeItem::Row() const {
 
 std::vector<std::unique_ptr<WaitTreeThread>> WaitTreeItem::MakeThreadItemList() {
     // Todo: adopt for multiple cores
-    const auto& threads = Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
+    const auto& threads =
+        Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
     std::vector<std::unique_ptr<WaitTreeThread>> item_list;
     item_list.reserve(threads.size());
     for (std::size_t i = 0; i < threads.size(); ++i) {

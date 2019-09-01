@@ -44,7 +44,8 @@ namespace Core {
 
 System::ResultStatus System::RunLoop(bool tight_loop) {
     status = ResultStatus::Success;
-    if (std::any_of(cpu_cores.begin(), cpu_cores.end(), [](std::shared_ptr<ARM_Interface> ptr){return ptr == nullptr;})) {
+    if (std::any_of(cpu_cores.begin(), cpu_cores.end(),
+                    [](std::shared_ptr<ARM_Interface> ptr) { return ptr == nullptr; })) {
         return ResultStatus::ErrorNotInitialized;
     }
 
@@ -80,7 +81,8 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     }
 
     if (max_delay > 0) {
-        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id, current_core_to_execute->GetTimer()->GetDowncount());
+        LOG_TRACE(Core_ARM11, "Core {} running (delayed) for {} ticks", current_core_to_execute->id,
+                  current_core_to_execute->GetTimer()->GetDowncount());
         running_core = current_core_to_execute.get();
         kernel->SetRunningCPU(current_core_to_execute);
         // TODO: Check only for threads on that core
@@ -107,7 +109,8 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
             cpu_core->GetTimer()->Advance(max_slice);
         }
         for (auto& cpu_core : cpu_cores) {
-            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id, cpu_core->GetTimer()->GetDowncount());
+            LOG_TRACE(Core_ARM11, "Core {} running for {} ticks", cpu_core->id,
+                      cpu_core->GetTimer()->GetDowncount());
             running_core = cpu_core.get();
             kernel->SetRunningCPU(cpu_core);
             // If we don't have a currently active thread then don't execute instructions,
@@ -247,41 +250,39 @@ void System::Reschedule() {
 System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mode) {
     LOG_DEBUG(HW_Memory, "initialized OK");
 
-    // TODO: check settings for n3ds mode and change value accordingly
-    constexpr std::size_t num_cores = 2;
+    std::size_t num_cores = 2;
+    if (Settings::values.is_new_3ds) {
+        num_cores = 4;
+    }
 
     memory = std::make_unique<Memory::MemorySystem>();
 
-    timing = std::make_unique<TimingManager>(*this, num_cores);
+    timing = std::make_unique<TimingManager>(num_cores);
 
     kernel = std::make_unique<Kernel::KernelSystem>(
         *memory, *timing, [this] { PrepareReschedule(); }, system_mode, num_cores);
 
-    // TODO: create cores properly
     if (Settings::values.use_cpu_jit) {
 #ifdef ARCHITECTURE_x86_64
-        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_Dynarmic>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
 #else
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
         LOG_WARNING(Core, "CPU JIT requested, but Dynarmic not available");
 #endif
     } else {
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(0));
-        cpu_cores.back()->id = 0;
-        cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
-        cpu_cores.back()->SetTimer(timing->GetTimer(1));
-        cpu_cores.back()->id = 1;
+        for (std::size_t i = 0; i < num_cores; ++i) {
+            cpu_cores.push_back(std::make_shared<ARM_DynCom>(this, *memory, USER32MODE));
+            cpu_cores.back()->SetTimer(timing->GetTimer(i));
+            cpu_cores.back()->id = i;
+        }
     }
     running_core = cpu_cores[0].get();
 
@@ -438,9 +439,7 @@ void System::Shutdown() {
     cheat_engine.reset();
     service_manager.reset();
     dsp_core.reset();
-    for (auto& cpu_core : cpu_cores) {
-        cpu_core.reset();
-    }
+    cpu_cores.clear();
     kernel.reset();
     timing.reset();
     app_loader.reset();

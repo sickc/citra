@@ -161,7 +161,8 @@ BreakpointMap breakpoints_write;
 
 static Kernel::Thread* FindThreadById(int id) {
     // Todo: Loop over all ThreadManager
-    const auto& threads = Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
+    const auto& threads =
+        Core::System::GetInstance().Kernel().GetCurrentThreadManager().GetThreadList();
     for (auto& thread : threads) {
         if (thread->GetThreadId() == static_cast<u32>(id)) {
             return thread.get();

@@ -18,13 +18,14 @@ namespace Kernel {
 
 /// Initialize the kernel
 KernelSystem::KernelSystem(Memory::MemorySystem& memory, Core::TimingManager& timing,
-                           std::function<void()> prepare_reschedule_callback, u32 system_mode, u32 num_cores)
+                           std::function<void()> prepare_reschedule_callback, u32 system_mode,
+                           u32 num_cores)
     : memory(memory), timing(timing),
       prepare_reschedule_callback(std::move(prepare_reschedule_callback)) {
     MemoryInit(system_mode);
 
     resource_limits = std::make_unique<ResourceLimitList>(*this);
-    for (u32 core_id=0; core_id < num_cores; ++core_id) {
+    for (u32 core_id = 0; core_id < num_cores; ++core_id) {
         thread_managers.push_back(std::make_unique<ThreadManager>(*this, core_id));
     }
     timer_manager = std::make_unique<TimerManager>(timing);
@@ -85,6 +86,7 @@ void KernelSystem::SetRunningCPU(std::shared_ptr<ARM_Interface> cpu) {
         stored_processes[current_cpu->id] = current_process;
     }
     current_cpu = cpu;
+    timing.SetCurrentTimer(cpu->id);
     if (stored_processes[current_cpu->id]) {
         SetCurrentProcess(stored_processes[current_cpu->id]);
     }
