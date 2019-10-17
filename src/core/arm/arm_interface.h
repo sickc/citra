@@ -9,10 +9,12 @@
 #include "common/common_types.h"
 #include "core/arm/skyeye_common/arm_regformat.h"
 #include "core/arm/skyeye_common/vfp/asm_vfp.h"
+#include "core/core_timing.h"
 
 /// Generic ARM11 CPU interface
 class ARM_Interface : NonCopyable {
 public:
+    explicit ARM_Interface(u32 id, Core::SharedTimer timer) : timer(timer), id(id){};
     virtual ~ARM_Interface() {}
 
     class ThreadContext {
@@ -172,4 +174,18 @@ public:
 
     /// Prepare core for thread reschedule (if needed to correctly handle state)
     virtual void PrepareReschedule() = 0;
+
+    std::shared_ptr<Core::Timing::Timer> GetTimer() {
+        return timer;
+    }
+
+    u32 GetID() const {
+        return id;
+    }
+
+protected:
+    Core::SharedTimer timer;
+
+private:
+    u32 id;
 };

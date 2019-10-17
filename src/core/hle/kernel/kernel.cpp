@@ -18,19 +18,25 @@ namespace Kernel {
 
 /// Initialize the kernel
 KernelSystem::KernelSystem(Memory::MemorySystem& memory, Core::Timing& timing,
-                           std::function<void()> prepare_reschedule_callback, u32 system_mode)
+                           std::function<void()> prepare_reschedule_callback, u32 system_mode,
+                           u32 num_cores)
     : memory(memory), timing(timing),
       prepare_reschedule_callback(std::move(prepare_reschedule_callback)) {
     MemoryInit(system_mode);
 
     resource_limits = std::make_unique<ResourceLimitList>(*this);
-    thread_manager = std::make_unique<ThreadManager>(*this);
+    for (u32 core_id = 0; core_id < num_cores; ++core_id) {
+        thread_managers.push_back(std::make_unique<ThreadManager>(*this, core_id));
+    }
     timer_manager = std::make_unique<TimerManager>(timing);
+    stored_processes.assign(num_cores, nullptr);
     ipc_recorder = std::make_unique<IPCDebugger::Recorder>();
 }
 
 /// Shutdown the kernel
-KernelSystem::~KernelSystem() = default;
+KernelSystem::~KernelSystem() {
+    ThreadManager::ResetThreadIDs();
+};
 
 ResourceLimitList& KernelSystem::ResourceLimit() {
     return *resource_limits;
@@ -53,6 +59,15 @@ void KernelSystem::SetCurrentProcess(std::shared_ptr<Process> process) {
     SetCurrentMemoryPageTable(&process->vm_manager.page_table);
 }
 
+void KernelSystem::SetCurrentProcessForCPU(std::shared_ptr<Process> process, u32 core_id) {
+    if (current_cpu->GetID() == core_id) {
+        current_process = process;
+        SetCurrentMemoryPageTable(&process->vm_manager.page_table);
+    } else {
+        stored_processes[core_id];
+    }
+}
+
 void KernelSystem::SetCurrentMemoryPageTable(Memory::PageTable* page_table) {
     memory.SetCurrentPageTable(page_table);
     if (current_cpu != nullptr) {
@@ -60,17 +75,39 @@ void KernelSystem::SetCurrentMemoryPageTable(Memory::PageTable* page_table) {
     }
 }
 
-void KernelSystem::SetCPU(std::shared_ptr<ARM_Interface> cpu) {
+void KernelSystem::SetCPUs(std::vector<std::shared_ptr<ARM_Interface>> cpus) {
+    ASSERT(cpus.size() == thread_managers.size());
+    u32 i = 0;
+    for (auto cpu : cpus) {
+        thread_managers[i++]->SetCPU(*cpu);
+    }
+}
+
+void KernelSystem::SetRunningCPU(std::shared_ptr<ARM_Interface> cpu) {
+    if (current_process) {
+        stored_processes[current_cpu->GetID()] = current_process;
+    }
     current_cpu = cpu;
-    thread_manager->SetCPU(*cpu);
+    timing.SetCurrentTimer(cpu->GetID());
+    if (stored_processes[current_cpu->GetID()]) {
+        SetCurrentProcess(stored_processes[current_cpu->GetID()]);
+    }
 }
 
-ThreadManager& KernelSystem::GetThreadManager() {
-    return *thread_manager;
+ThreadManager& KernelSystem::GetThreadManager(u32 core_id) {
+    return *thread_managers[core_id];
 }
 
-const ThreadManager& KernelSystem::GetThreadManager() const {
-    return *thread_manager;
+const ThreadManager& KernelSystem::GetThreadManager(u32 core_id) const {
+    return *thread_managers[core_id];
+}
+
+ThreadManager& KernelSystem::GetCurrentThreadManager() {
+    return *thread_managers[current_cpu->GetID()];
+}
+
+const ThreadManager& KernelSystem::GetCurrentThreadManager() const {
+    return *thread_managers[current_cpu->GetID()];
 }
 
 TimerManager& KernelSystem::GetTimerManager() {
