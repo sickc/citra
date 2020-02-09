@@ -33,16 +33,6 @@ void Thread::Acquire(Thread* thread) {
     ASSERT_MSG(!ShouldWait(thread), "object unavailable!");
 }
 
-u32 ThreadManager::next_thread_id = 1;
-
-u32 ThreadManager::NewThreadId() {
-    return next_thread_id++;
-}
-
-void ThreadManager::ResetThreadIDs() {
-    next_thread_id = 0;
-}
-
 Thread::Thread(KernelSystem& kernel, u32 core_id)
     : WaitObject(kernel), context(kernel.GetThreadManager(core_id).NewContext()),
       thread_manager(kernel.GetThreadManager(core_id)) {}
@@ -320,7 +310,7 @@ ResultVal<std::shared_ptr<Thread>> KernelSystem::CreateThread(std::string name, 
     thread_managers[processor_id]->thread_list.push_back(thread);
     thread_managers[processor_id]->ready_queue.prepare(priority);
 
-    thread->thread_id = thread_managers[processor_id]->NewThreadId();
+    thread->thread_id = NewThreadId();
     thread->status = ThreadStatus::Dormant;
     thread->entry_point = entry_point;
     thread->stack_top = stack_top;

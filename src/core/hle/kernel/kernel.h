@@ -249,6 +249,10 @@ public:
         prepare_reschedule_callback();
     }
 
+    u32 NewThreadId();
+
+    void ResetThreadIDs();
+
     /// Map of named ports managed by the kernel, which can be retrieved using the ConnectToPort
     std::unordered_map<std::string, std::shared_ptr<ClientPort>> named_ports;
 
@@ -291,6 +295,8 @@ private:
     std::unique_ptr<SharedPage::Handler> shared_page_handler;
 
     std::unique_ptr<IPCDebugger::Recorder> ipc_recorder;
+
+    u32 next_thread_id;
 };
 
 } // namespace Kernel

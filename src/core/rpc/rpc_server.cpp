@@ -48,7 +48,7 @@ void RPCServer::HandleWriteMemory(Packet& packet, u32 address, const u8* data, u
         // If the memory happens to be executable code, make sure the changes become visible
 
         // Is current core correct here?
-        Core::GetRunningCore().InvalidateCacheRange(address, data_size);
+        Core::System::GetInstance().InvalidateCacheRange(address, data_size);
     }
     packet.SetPacketDataSize(0);
     packet.SendReply();

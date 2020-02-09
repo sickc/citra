@@ -125,8 +125,6 @@ inline u64 cyclesToMs(s64 cycles) {
 
 namespace Core {
 
-class System;
-
 using TimedCallback = std::function<void(u64 userdata, int cycles_late)>;
 
 struct TimingEventType {
@@ -195,7 +193,7 @@ public:
         u64 idled_cycles;
     };
 
-    Timing(std::size_t num_cores);
+    explicit Timing(std::size_t num_cores);
 
     ~Timing(){};
 
@@ -233,10 +231,8 @@ private:
     // elements remain stable regardless of rehashes/resizing.
     std::unordered_map<std::string, TimingEventType> event_types;
 
-    std::unordered_map<std::size_t, std::shared_ptr<Timer>> timers;
+    std::vector<std::shared_ptr<Timer>> timers;
     std::shared_ptr<Timer> current_timer;
 };
-
-using SharedTimer = std::shared_ptr<Timing::Timer>;
 
 } // namespace Core

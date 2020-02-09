@@ -31,11 +31,13 @@ KernelSystem::KernelSystem(Memory::MemorySystem& memory, Core::Timing& timing,
     timer_manager = std::make_unique<TimerManager>(timing);
     ipc_recorder = std::make_unique<IPCDebugger::Recorder>();
     stored_processes.assign(num_cores, nullptr);
+
+    next_thread_id = 1;
 }
 
 /// Shutdown the kernel
 KernelSystem::~KernelSystem() {
-    ThreadManager::ResetThreadIDs();
+    ResetThreadIDs();
 };
 
 ResourceLimitList& KernelSystem::ResourceLimit() {
@@ -64,7 +66,7 @@ void KernelSystem::SetCurrentProcessForCPU(std::shared_ptr<Process> process, u32
         current_process = process;
         SetCurrentMemoryPageTable(&process->vm_manager.page_table);
     } else {
-        stored_processes[core_id];
+        stored_processes[core_id] = process;
     }
 }
 
@@ -78,7 +80,7 @@ void KernelSystem::SetCurrentMemoryPageTable(Memory::PageTable* page_table) {
 void KernelSystem::SetCPUs(std::vector<std::shared_ptr<ARM_Interface>> cpus) {
     ASSERT(cpus.size() == thread_managers.size());
     u32 i = 0;
-    for (auto cpu : cpus) {
+    for (const auto& cpu : cpus) {
         thread_managers[i++]->SetCPU(*cpu);
     }
 }
@@ -136,6 +138,14 @@ const IPCDebugger::Recorder& KernelSystem::GetIPCRecorder() const {
 
 void KernelSystem::AddNamedPort(std::string name, std::shared_ptr<ClientPort> port) {
     named_ports.emplace(std::move(name), std::move(port));
+}
+
+u32 KernelSystem::NewThreadId() {
+    return next_thread_id++;
+}
+
+void KernelSystem::ResetThreadIDs() {
+    next_thread_id = 0;
 }
 
 } // namespace Kernel

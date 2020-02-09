@@ -7,7 +7,6 @@
 #include <tuple>
 #include "common/assert.h"
 #include "common/logging/log.h"
-#include "core/core.h"
 #include "core/core_timing.h"
 
 namespace Core {
@@ -22,6 +21,7 @@ bool Timing::Event::operator<(const Timing::Event& right) const {
 }
 
 Timing::Timing(std::size_t num_cores) {
+    timers.resize(num_cores);
     for (std::size_t i = 0; i < num_cores; ++i) {
         timers[i] = std::make_shared<Timer>();
     }
@@ -45,13 +45,12 @@ TimingEventType* Timing::RegisterEvent(const std::string& name, TimedCallback ca
 void Timing::ScheduleEvent(s64 cycles_into_future, const TimingEventType* event_type, u64 userdata,
                            std::size_t core_id) {
     ASSERT(event_type != nullptr);
-    SharedTimer timer;
+    std::shared_ptr<Timing::Timer> timer;
     if (core_id == std::numeric_limits<std::size_t>::max()) {
         timer = current_timer;
     } else {
-        auto timer_it = timers.find(core_id);
-        ASSERT(timer_it != timers.end());
-        timer = timer_it->second;
+        ASSERT(core_id < timers.size());
+        timer = timers.at(core_id);
     }
 
     s64 timeout = timer->GetTicks() + cycles_into_future;
@@ -72,14 +71,13 @@ void Timing::ScheduleEvent(s64 cycles_into_future, const TimingEventType* event_
 void Timing::UnscheduleEvent(const TimingEventType* event_type, u64 userdata) {
     for (auto timer : timers) {
         auto itr = std::remove_if(
-            timer.second->event_queue.begin(), timer.second->event_queue.end(),
+            timer->event_queue.begin(), timer->event_queue.end(),
             [&](const Event& e) { return e.type == event_type && e.userdata == userdata; });
 
         // Removing random items breaks the invariant so we have to re-establish it.
-        if (itr != timer.second->event_queue.end()) {
-            timer.second->event_queue.erase(itr, timer.second->event_queue.end());
-            std::make_heap(timer.second->event_queue.begin(), timer.second->event_queue.end(),
-                           std::greater<>());
+        if (itr != timer->event_queue.end()) {
+            timer->event_queue.erase(itr, timer->event_queue.end());
+            std::make_heap(timer->event_queue.begin(), timer->event_queue.end(), std::greater<>());
         }
     }
     // TODO:remove events from ts_queue
@@ -87,15 +85,13 @@ void Timing::UnscheduleEvent(const TimingEventType* event_type, u64 userdata) {
 
 void Timing::RemoveEvent(const TimingEventType* event_type) {
     for (auto timer : timers) {
-        auto itr =
-            std::remove_if(timer.second->event_queue.begin(), timer.second->event_queue.end(),
-                           [&](const Event& e) { return e.type == event_type; });
+        auto itr = std::remove_if(timer->event_queue.begin(), timer->event_queue.end(),
+                                  [&](const Event& e) { return e.type == event_type; });
 
         // Removing random items breaks the invariant so we have to re-establish it.
-        if (itr != timer.second->event_queue.end()) {
-            timer.second->event_queue.erase(itr, timer.second->event_queue.end());
-            std::make_heap(timer.second->event_queue.begin(), timer.second->event_queue.end(),
-                           std::greater<>());
+        if (itr != timer->event_queue.end()) {
+            timer->event_queue.erase(itr, timer->event_queue.end());
+            std::make_heap(timer->event_queue.begin(), timer->event_queue.end(), std::greater<>());
         }
     }
     // TODO:remove events from ts_queue
@@ -117,7 +113,7 @@ std::chrono::microseconds Timing::GetGlobalTimeUs() const {
     return std::chrono::microseconds{GetTicks() * 1000000 / BASE_CLOCK_RATE_ARM11};
 }
 
-SharedTimer Timing::GetTimer(std::size_t cpu_id) {
+std::shared_ptr<Timing::Timer> Timing::GetTimer(std::size_t cpu_id) {
     return timers[cpu_id];
 }
 

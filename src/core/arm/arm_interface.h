@@ -14,7 +14,8 @@
 /// Generic ARM11 CPU interface
 class ARM_Interface : NonCopyable {
 public:
-    explicit ARM_Interface(u32 id, Core::SharedTimer timer) : timer(timer), id(id){};
+    explicit ARM_Interface(u32 id, std::shared_ptr<Core::Timing::Timer> timer)
+        : timer(timer), id(id){};
     virtual ~ARM_Interface() {}
 
     class ThreadContext {
@@ -184,7 +185,7 @@ public:
     }
 
 protected:
-    Core::SharedTimer timer;
+    std::shared_ptr<Core::Timing::Timer> timer;
 
 private:
     u32 id;

@@ -63,14 +63,6 @@ public:
     ~ThreadManager();
 
     /**
-     * Creates a new thread ID
-     * @return The new thread ID
-     */
-    static u32 NewThreadId();
-
-    static void ResetThreadIDs();
-
-    /**
      * Gets the current thread
      */
     Thread* GetCurrentThread() const;
@@ -136,7 +128,6 @@ private:
     Kernel::KernelSystem& kernel;
     ARM_Interface* cpu;
 
-    static u32 next_thread_id;
     std::shared_ptr<Thread> current_thread;
     Common::ThreadQueueList<Thread*, ThreadPrioLowest + 1> ready_queue;
     std::unordered_map<u64, Thread*> wakeup_callback_table;

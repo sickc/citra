@@ -240,7 +240,7 @@ void System::Reschedule() {
     }
 
     reschedule_pending = false;
-    for (auto core : cpu_cores) {
+    for (const auto& core : cpu_cores) {
         LOG_TRACE(Core_ARM11, "Reschedule core {}", core->GetID());
         kernel->GetThreadManager(core->GetID()).Reschedule();
     }

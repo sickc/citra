@@ -69,7 +69,8 @@ private:
 };
 
 ARM_DynCom::ARM_DynCom(Core::System* system, Memory::MemorySystem& memory,
-                       PrivilegeMode initial_mode, u32 id, Core::SharedTimer timer)
+                       PrivilegeMode initial_mode, u32 id,
+                       std::shared_ptr<Core::Timing::Timer> timer)
     : ARM_Interface(id, timer), system(system) {
     state = std::make_unique<ARMul_State>(system, memory, initial_mode);
 }

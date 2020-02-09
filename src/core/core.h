@@ -182,6 +182,12 @@ public:
         return cpu_cores.size();
     }
 
+    void InvalidateCacheRange(u32 start_address, std::size_t length) {
+        for (const auto& cpu : cpu_cores) {
+            cpu->InvalidateCacheRange(start_address, length);
+        }
+    }
+
     /**
      * Gets a reference to the emulated DSP.
      * @returns A reference to the emulated DSP.
@@ -288,8 +294,6 @@ public:
     std::shared_ptr<Frontend::ImageInterface> GetImageInterface() const {
         return registered_image_interface;
     }
-    
-    bool initalized = false;
 
 private:
     /**
@@ -350,6 +354,8 @@ private:
 
 private:
     static System s_instance;
+
+    bool initalized = false;
 
     ResultStatus status = ResultStatus::Success;
     std::string status_details = "";
