@@ -2,6 +2,8 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#pragma once
+
 #include <cstddef>
 #include <memory>
 
@@ -12,6 +14,8 @@ class PageTable;
 }
 
 namespace Common {
+
+class FastmemMapper;
 
 class BackingMemory final {
 public:
@@ -24,14 +28,15 @@ public:
 private:
     friend class FastmemMapper;
 
-    BackingMemory(FastmemMapper& m, u8* p);
+    BackingMemory(FastmemMapper* m, u8* p);
 
-    FastmemMapper& mapper;
+    FastmemMapper* mapper;
     u8* pointer;
 };
 
 class FastmemRegion final {
 public:
+    FastmemRegion();
     ~FastmemRegion();
 
     u8* Get() const {
@@ -41,9 +46,9 @@ public:
 private:
     friend class FastmemMapper;
 
-    FastmemRegion(FastmemMapper& m, u8* p);
+    FastmemRegion(FastmemMapper* m, u8* p);
 
-    FastmemMapper& mapper;
+    FastmemMapper* mapper;
     u8* pointer;
 };
 
@@ -61,6 +66,9 @@ public:
     void Unmap(Memory::PageTable& page_table, VAddr vaddr, std::size_t size);
 
 private:
+    friend class BackingMemory;
+    friend class FastmemRegion;
+
     struct Impl;
     std::unique_ptr<Impl> impl;
 };

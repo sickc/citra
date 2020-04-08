@@ -313,7 +313,7 @@ std::unique_ptr<Dynarmic::A32::Jit> ARM_Dynarmic::MakeJit() {
     config.callbacks = cb.get();
     if (current_page_table) {
         config.page_table = &current_page_table->pointers;
-        config.fastmem_pointer = current_page_table->fastmem_base.get();
+        config.fastmem_pointer = current_page_table->fastmem_base.Get();
     }
     config.coprocessors[15] = std::make_shared<DynarmicCP15>(cp15_state);
     config.define_unpredictable_behaviour = true;

@@ -73,7 +73,7 @@ private:
      */
     std::array<PageType, PAGE_TABLE_NUM_ENTRIES> attributes;
 
-    Common::FastmemRegion fastmem_base{nullptr, nullptr};
+    Common::FastmemRegion fastmem_base;
 };
 
 /// Physical memory regions as seen from the ARM11

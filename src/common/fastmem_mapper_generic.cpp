@@ -1,15 +1,20 @@
+// Copyright 2019 Citra Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
+
 #include <cstdlib>
 #include "common/fastmem_mapper.h"
 
 namespace Common {
 
-BackingMemory::BackingMemory(FastmemMapper& m, u8* p) : mapper(m), pointer(p) {}
+BackingMemory::BackingMemory(FastmemMapper* m, u8* p) : mapper(m), pointer(p) {}
 
 BackingMemory::~BackingMemory() {
     std::free(static_cast<void*>(p));
 }
 
-FastmemRegion::FastmemRegion(FastmemMapper& m, u8* p) : mapper(m), pointer(p) {}
+FastmemRegion::FastmemRegion() : FastmemRegion(nullptr, nullptr) {}
+FastmemRegion::FastmemRegion(FastmemMapper* m, u8* p) : mapper(m), pointer(p) {}
 
 FastmemRegion::~FastmemRegion() {}
 
