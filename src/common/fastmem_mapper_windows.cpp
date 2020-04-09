@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <Windows.h>
 #include <memoryapi.h>
+#include <windows.h>
 #include "common/assert.h"
 #include "common/common_types.h"
 #include "common/fastmem_mapper.h"
