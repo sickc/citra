@@ -14,6 +14,34 @@
 #include "common/fastmem_mapper.h"
 #include "core/memory.h"
 
+#ifdef __MINGW32__
+
+// MinGW doesn't have these declared.
+
+#define MEM_EXTENDED_PARAMETER_TYPE_BITS 8
+
+typedef struct DECLSPEC_ALIGN(8) MEM_EXTENDED_PARAMETER {
+    struct {
+        DWORD64 Type : MEM_EXTENDED_PARAMETER_TYPE_BITS;
+        DWORD64 Reserved : 64 - MEM_EXTENDED_PARAMETER_TYPE_BITS;
+    } DUMMYSTRUCTNAME;
+
+    union {
+        DWORD64 ULong64;
+        PVOID Pointer;
+        SIZE_T Size;
+        HANDLE Handle;
+        DWORD ULong;
+    } DUMMYUNIONNAME;
+} MEM_EXTENDED_PARAMETER, *PMEM_EXTENDED_PARAMETER;
+
+#define MEM_COALESCE_PLACEHOLDERS 0x00000001
+#define MEM_PRESERVE_PLACEHOLDER 0x00000002
+#define MEM_REPLACE_PLACEHOLDER 0x00004000
+#define MEM_RESERVE_PLACEHOLDER 0x00040000
+
+#endif
+
 namespace Common {
 
 constexpr std::size_t fastmem_region_size = 0x100000000; // 4 GiB
