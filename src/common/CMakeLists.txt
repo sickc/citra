@@ -109,7 +109,9 @@ add_library(common STATIC
     zstd_compression.h
 )
 
-if(UNIX)
+if(WIN32)
+    target_sources(common PRIVATE fastmem_mapper_windows.cpp)
+elseif(UNIX)
     target_sources(common PRIVATE fastmem_mapper_posix.cpp)
 else()
     target_sources(common PRIVATE fastmem_mapper_generic.cpp)
