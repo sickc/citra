@@ -19,8 +19,8 @@
 #include "common/bit_field.h"
 #include "common/common_funcs.h"
 #include "common/common_types.h"
-#include "common/memory_ref.h"
 #include "common/swap.h"
+#include "core/backing_memory_manager.h"
 #include "core/memory.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,9 +86,9 @@ struct SharedPageDef {
 static_assert(sizeof(SharedPageDef) == Memory::SHARED_PAGE_SIZE,
               "Shared page structure size is wrong");
 
-class Handler : public BackingMem {
+class Handler {
 public:
-    Handler(Core::Timing& timing);
+    Handler(Core::Timing& timing, Memory::BackingMemory backing_memory);
 
     void SetMacAddress(const MacAddress&);
 
@@ -98,19 +98,9 @@ public:
 
     void Set3DSlider(float);
 
-    SharedPageDef& GetSharedPage();
+    SharedPageDef& GetSharedPage() { return shared_page; }
 
-    u8* GetPtr() override {
-        return reinterpret_cast<u8*>(&shared_page);
-    }
-
-    const u8* GetPtr() const override {
-        return reinterpret_cast<const u8*>(&shared_page);
-    }
-
-    std::size_t GetSize() const override {
-        return sizeof(shared_page);
-    }
+    Memory::MemoryRef GetRef() { return ref; }
 
 private:
     u64 GetSystemTime() const;
@@ -119,14 +109,8 @@ private:
     Core::TimingEventType* update_time_event;
     std::chrono::seconds init_time;
 
-    SharedPageDef shared_page;
-
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int) {
-        ar& boost::serialization::base_object<BackingMem>(*this);
-        ar& boost::serialization::make_binary_object(&shared_page, sizeof(shared_page));
-    }
-    friend class boost::serialization::access;
+    SharedPageDef& shared_page;
+    Memory::MemoryRef ref;
 };
 
 } // namespace SharedPage

@@ -81,9 +81,6 @@ public:
      */
     virtual void PipeWrite(DspPipe pipe_number, const std::vector<u8>& buffer) = 0;
 
-    /// Returns a reference to the array backing DSP memory
-    virtual std::array<u8, Memory::DSP_RAM_SIZE>& GetDspMemory() = 0;
-
     /// Sets the dsp class that we trigger interrupts for
     virtual void SetServiceToInterrupt(std::weak_ptr<Service::DSP::DSP_DSP> dsp) = 0;
 

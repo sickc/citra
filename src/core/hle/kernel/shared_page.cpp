@@ -15,19 +15,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SERIALIZE_EXPORT_IMPL(SharedPage::Handler)
-
-namespace boost::serialization {
-
-template <class Archive>
-void load_construct_data(Archive& ar, SharedPage::Handler* t, const unsigned int) {
-    ::new (t) SharedPage::Handler(Core::System::GetInstance().CoreTiming());
-}
-template void load_construct_data<iarchive>(iarchive& ar, SharedPage::Handler* t,
-                                            const unsigned int);
-
-} // namespace boost::serialization
-
 namespace SharedPage {
 
 static std::chrono::seconds GetInitTime() {
@@ -55,7 +42,7 @@ static std::chrono::seconds GetInitTime() {
     }
 }
 
-Handler::Handler(Core::Timing& timing) : timing(timing) {
+Handler::Handler(Core::Timing& timing, Memory::BackingMemory backing_memory) : timing(timing), shared_page(*reinterpret_cast<SharedPageDef*>(backing_memory.Get())), ref(backing_memory.GetRef()) {
     std::memset(&shared_page, 0, sizeof(shared_page));
 
     shared_page.running_hw = 0x1; // product
@@ -138,10 +125,6 @@ void Handler::Set3DLed(u8 state) {
 
 void Handler::Set3DSlider(float slidestate) {
     shared_page.sliderstate_3d = static_cast<float_le>(slidestate);
-}
-
-SharedPageDef& Handler::GetSharedPage() {
-    return shared_page;
 }
 
 } // namespace SharedPage

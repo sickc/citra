@@ -23,17 +23,27 @@
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
 
-SERIALIZE_EXPORT_IMPL(Memory::MemorySystem::BackingMemImpl<Memory::Region::FCRAM>)
-SERIALIZE_EXPORT_IMPL(Memory::MemorySystem::BackingMemImpl<Memory::Region::VRAM>)
-SERIALIZE_EXPORT_IMPL(Memory::MemorySystem::BackingMemImpl<Memory::Region::DSP>)
-SERIALIZE_EXPORT_IMPL(Memory::MemorySystem::BackingMemImpl<Memory::Region::N3DS>)
-
 namespace Memory {
 
-void PageTable::Clear() {
-    pointers.raw.fill(nullptr);
-    pointers.refs.fill(MemoryRef());
+PageTable::PageTable(std::shared_ptr<BackingMemoryManager> backing_memory_manager) : backing_memory_manager(std::move(backing_memory_manager)) {}
+
+PageTable::~PageTable() = default;
+
+void PageTable::Reset() {
+    pointers.fill(nullptr);
     attributes.fill(PageType::Unmapped);
+    fastmem_base = backing_memory_manager->AllocateFastmemRegion();
+}
+
+MMIORegionPointer PageTable::GetMMIOHandler(VAddr vaddr) {
+    DEBUG_ASSERT(GetAttribute(vaddr) == PageType::Special);
+    for (const auto& region : special_regions) {
+        if (vaddr >= region.base && vaddr < (region.base + region.size)) {
+            return region.handler;
+        }
+    }
+    ASSERT_MSG(false, "Mapped IO page without a handler @ {:08X}", vaddr);
+    return nullptr; // Should never happen
 }
 
 class RasterizerCacheMarker {
@@ -81,127 +91,91 @@ private:
 
 class MemorySystem::Impl {
 public:
-    // Visual Studio would try to allocate these on compile time if they are std::array, which would
-    // exceed the memory limit.
-    std::unique_ptr<u8[]> fcram = std::make_unique<u8[]>(Memory::FCRAM_N3DS_SIZE);
-    std::unique_ptr<u8[]> vram = std::make_unique<u8[]>(Memory::VRAM_SIZE);
-    std::unique_ptr<u8[]> n3ds_extra_ram = std::make_unique<u8[]>(Memory::N3DS_EXTRA_RAM_SIZE);
+    static constexpr size_t TOTAL_REQUIRED_MEMORY = Memory::FCRAM_N3DS_SIZE + Memory::VRAM_SIZE + Memory::N3DS_EXTRA_RAM_SIZE + Memory::DSP_RAM_SIZE + Memory::SHARED_MEMORY_SIZE + Memory::CONFIG_MEMORY_SIZE;
+    std::shared_ptr<BackingMemoryManager> backing_memory = std::make_shared<BackingMemoryManager>(TOTAL_REQUIRED_MEMORY);
 
-    std::shared_ptr<PageTable> current_page_table = nullptr;
+    BackingMemory fcram = backing_memory->AllocateBackingMemory(Memory::FCRAM_N3DS_SIZE);
+    BackingMemory vram = backing_memory->AllocateBackingMemory(Memory::VRAM_SIZE);
+    BackingMemory n3ds_extra_ram = backing_memory->AllocateBackingMemory(Memory::N3DS_EXTRA_RAM_SIZE);
+    BackingMemory dspram = backing_memory->AllocateBackingMemory(Memory::DSP_RAM_SIZE);
+
+    std::shared_ptr<PageTable> current_page_table = std::make_shared<PageTable>(backing_memory);
     RasterizerCacheMarker cache_marker;
     std::vector<std::shared_ptr<PageTable>> page_table_list;
 
     AudioCore::DspInterface* dsp = nullptr;
 
-    std::shared_ptr<BackingMem> fcram_mem;
-    std::shared_ptr<BackingMem> vram_mem;
-    std::shared_ptr<BackingMem> n3ds_extra_ram_mem;
-    std::shared_ptr<BackingMem> dsp_mem;
-
-    Impl();
-
-    const u8* GetPtr(Region r) const {
-        switch (r) {
-        case Region::VRAM:
-            return vram.get();
-        case Region::DSP:
-            return dsp->GetDspMemory().data();
-        case Region::FCRAM:
-            return fcram.get();
-        case Region::N3DS:
-            return n3ds_extra_ram.get();
-        default:
-            UNREACHABLE();
+    size_t SerializePageTable(std::shared_ptr<PageTable> page_table) const {
+        const auto iter = std::find(page_table_list.begin(), page_table_list.end(), page_table);
+        if (iter == page_table_list.end()) {
+            return static_cast<size_t>(-1);
         }
+        return std::distance(page_table_list.begin(), iter);
     }
 
-    u8* GetPtr(Region r) {
-        switch (r) {
-        case Region::VRAM:
-            return vram.get();
-        case Region::DSP:
-            return dsp->GetDspMemory().data();
-        case Region::FCRAM:
-            return fcram.get();
-        case Region::N3DS:
-            return n3ds_extra_ram.get();
-        default:
-            UNREACHABLE();
+    std::shared_ptr<PageTable> UnserializePageTable(size_t page_table_index) const {
+        if (page_table_index == static_cast<size_t>(-1)) {
+            return nullptr;
         }
-    }
-
-    u32 GetSize(Region r) const {
-        switch (r) {
-        case Region::VRAM:
-            return VRAM_SIZE;
-        case Region::DSP:
-            return DSP_RAM_SIZE;
-        case Region::FCRAM:
-            return FCRAM_N3DS_SIZE;
-        case Region::N3DS:
-            return N3DS_EXTRA_RAM_SIZE;
-        default:
-            UNREACHABLE();
-        }
+        return page_table_list[page_table_index];
     }
 
 private:
     friend class boost::serialization::access;
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int file_version) {
-        bool save_n3ds_ram = Settings::values.is_new_3ds;
-        ar& save_n3ds_ram;
-        ar& boost::serialization::make_binary_object(vram.get(), Memory::VRAM_SIZE);
-        ar& boost::serialization::make_binary_object(
-            fcram.get(), save_n3ds_ram ? Memory::FCRAM_N3DS_SIZE : Memory::FCRAM_SIZE);
-        ar& boost::serialization::make_binary_object(
-            n3ds_extra_ram.get(), save_n3ds_ram ? Memory::N3DS_EXTRA_RAM_SIZE : 0);
-        ar& cache_marker;
-        ar& page_table_list;
-        // dsp is set from Core::System at startup
-        ar& current_page_table;
-        ar& fcram_mem;
-        ar& vram_mem;
-        ar& n3ds_extra_ram_mem;
-        ar& dsp_mem;
+
+    template<class Archive>
+    void save(Archive& ar, const unsigned int version) const {
+        const bool save_n3ds_ram = Settings::values.is_new_3ds;
+        ar << save_n3ds_ram;
+        ar << boost::serialization::make_binary_object(vram.Get(), Memory::VRAM_SIZE);
+        ar << boost::serialization::make_binary_object(
+            fcram.Get(), save_n3ds_ram ? Memory::FCRAM_N3DS_SIZE : Memory::FCRAM_SIZE);
+        ar << boost::serialization::make_binary_object(
+            n3ds_extra_ram.Get(), save_n3ds_ram ? Memory::N3DS_EXTRA_RAM_SIZE : 0);
+        ar << cache_marker;
+        const size_t num_page_tables = page_table_list.size();
+        ar << num_page_tables;
+        for (size_t i = 0; i < num_page_tables; ++i) {
+            page_table_list[i]->save(ar, version);
+        }
+        const size_t current_index = SerializePageTable(current_page_table);
+        ar << current_index;
     }
+
+    template<class Archive>
+    void load(Archive& ar, const unsigned int version) {
+        bool save_n3ds_ram;
+        ar >> save_n3ds_ram;
+        ar >> boost::serialization::make_binary_object(vram.Get(), Memory::VRAM_SIZE);
+        ar >> boost::serialization::make_binary_object(
+            fcram.Get(), save_n3ds_ram ? Memory::FCRAM_N3DS_SIZE : Memory::FCRAM_SIZE);
+        ar >> boost::serialization::make_binary_object(
+            n3ds_extra_ram.Get(), save_n3ds_ram ? Memory::N3DS_EXTRA_RAM_SIZE : 0);
+        ar >> cache_marker;
+        size_t num_page_tables;
+        ar >> num_page_tables;
+        for (size_t i = 0; i < num_page_tables; ++i) {
+            page_table_list.emplace_back(std::make_shared<PageTable>(backing_memory));
+            page_table_list[i]->load(ar, version);
+        }
+        size_t current_index;
+        ar >> current_index;
+        current_page_table = UnserializePageTable(current_index);
+    }
+
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
-
-// We use this rather than BufferMem because we don't want new objects to be allocated when
-// deserializing. This avoids unnecessary memory thrashing.
-template <Region R>
-class MemorySystem::BackingMemImpl : public BackingMem {
-public:
-    BackingMemImpl() : impl(*Core::Global<Core::System>().Memory().impl) {}
-    explicit BackingMemImpl(MemorySystem::Impl& impl_) : impl(impl_) {}
-    u8* GetPtr() override {
-        return impl.GetPtr(R);
-    }
-    const u8* GetPtr() const override {
-        return impl.GetPtr(R);
-    }
-    std::size_t GetSize() const override {
-        return impl.GetSize(R);
-    }
-
-private:
-    MemorySystem::Impl& impl;
-
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int) {
-        ar& boost::serialization::base_object<BackingMem>(*this);
-    }
-    friend class boost::serialization::access;
-};
-
-MemorySystem::Impl::Impl()
-    : fcram_mem(std::make_shared<BackingMemImpl<Region::FCRAM>>(*this)),
-      vram_mem(std::make_shared<BackingMemImpl<Region::VRAM>>(*this)),
-      n3ds_extra_ram_mem(std::make_shared<BackingMemImpl<Region::N3DS>>(*this)),
-      dsp_mem(std::make_shared<BackingMemImpl<Region::DSP>>(*this)) {}
 
 MemorySystem::MemorySystem() : impl(std::make_unique<Impl>()) {}
 MemorySystem::~MemorySystem() = default;
+
+BackingMemoryManager& MemorySystem::GetBackingMemoryManager() {
+    return *impl->backing_memory;
+}
+
+std::shared_ptr<PageTable> MemorySystem::NewPageTable() {
+    return std::make_shared<PageTable>(impl->backing_memory);
+}
 
 template <class Archive>
 void MemorySystem::serialize(Archive& ar, const unsigned int file_version) {
@@ -218,9 +192,8 @@ std::shared_ptr<PageTable> MemorySystem::GetCurrentPageTable() const {
     return impl->current_page_table;
 }
 
-void MemorySystem::MapPages(PageTable& page_table, u32 base, u32 size, MemoryRef memory,
-                            PageType type) {
-    LOG_DEBUG(HW_Memory, "Mapping {} onto {:08X}-{:08X}", (void*)memory.GetPtr(), base * PAGE_SIZE,
+void MemorySystem::MapPages(PageTable& page_table, u32 base, u32 size, u8* memory, PageType type) {
+    LOG_DEBUG(HW_Memory, "Mapping {} onto {:08X}-{:08X}", memory, base * PAGE_SIZE,
               (base + size) * PAGE_SIZE);
 
     RasterizerFlushVirtualRegion(base << PAGE_BITS, size * PAGE_SIZE,
@@ -230,25 +203,30 @@ void MemorySystem::MapPages(PageTable& page_table, u32 base, u32 size, MemoryRef
     while (base != end) {
         ASSERT_MSG(base < PAGE_TABLE_NUM_ENTRIES, "out of range mapping at {:08X}", base);
 
-        page_table.attributes[base] = type;
-        page_table.pointers[base] = memory;
-
         // If the memory to map is already rasterizer-cached, mark the page
-        if (type == PageType::Memory && impl->cache_marker.IsCached(base * PAGE_SIZE)) {
-            page_table.attributes[base] = PageType::RasterizerCachedMemory;
-            page_table.pointers[base] = nullptr;
+        if (type == PageType::Memory) {
+            if (impl->cache_marker.IsCached(base * PAGE_SIZE)) {
+                page_table.SetRasterizerCachedMemory(base * PAGE_SIZE);
+                impl->backing_memory->Unmap(page_table, base * PAGE_SIZE, PAGE_SIZE);
+            } else {
+                page_table.SetMemory(base * PAGE_SIZE, memory);
+                impl->backing_memory->Map(page_table, base * PAGE_SIZE, memory, PAGE_SIZE);
+            }
+        } else {
+            page_table.Set(type, base * PAGE_SIZE, memory);
+            impl->backing_memory->Unmap(page_table, base * PAGE_SIZE, PAGE_SIZE);
         }
 
         base += 1;
-        if (memory != nullptr && memory.GetSize() > PAGE_SIZE)
+        if (memory != nullptr)
             memory += PAGE_SIZE;
     }
 }
 
-void MemorySystem::MapMemoryRegion(PageTable& page_table, VAddr base, u32 size, MemoryRef target) {
+void MemorySystem::MapMemoryRegion(PageTable& page_table, VAddr base, u32 size, Memory::MemoryRef target) {
     ASSERT_MSG((size & PAGE_MASK) == 0, "non-page aligned size: {:08X}", size);
     ASSERT_MSG((base & PAGE_MASK) == 0, "non-page aligned base: {:08X}", base);
-    MapPages(page_table, base / PAGE_SIZE, size / PAGE_SIZE, target, PageType::Memory);
+    MapPages(page_table, base / PAGE_SIZE, size / PAGE_SIZE, GetPointerForRef(target), PageType::Memory);
 }
 
 void MemorySystem::MapIoRegion(PageTable& page_table, VAddr base, u32 size,
@@ -266,15 +244,15 @@ void MemorySystem::UnmapRegion(PageTable& page_table, VAddr base, u32 size) {
     MapPages(page_table, base / PAGE_SIZE, size / PAGE_SIZE, nullptr, PageType::Unmapped);
 }
 
-MemoryRef MemorySystem::GetPointerForRasterizerCache(VAddr addr) {
+u8* MemorySystem::GetPointerForRasterizerCache(VAddr addr) {
     if (addr >= LINEAR_HEAP_VADDR && addr < LINEAR_HEAP_VADDR_END) {
-        return {impl->fcram_mem, addr - LINEAR_HEAP_VADDR};
+        return impl->fcram.Get() + (addr - LINEAR_HEAP_VADDR);
     }
     if (addr >= NEW_LINEAR_HEAP_VADDR && addr < NEW_LINEAR_HEAP_VADDR_END) {
-        return {impl->fcram_mem, addr - NEW_LINEAR_HEAP_VADDR};
+        return impl->fcram.Get() + (addr - NEW_LINEAR_HEAP_VADDR);
     }
     if (addr >= VRAM_VADDR && addr < VRAM_VADDR_END) {
-        return {impl->vram_mem, addr - VRAM_VADDR};
+        return impl->vram.Get() + (addr - VRAM_VADDR);
     }
     UNREACHABLE();
 }
@@ -290,17 +268,12 @@ void MemorySystem::UnregisterPageTable(std::shared_ptr<PageTable> page_table) {
     }
 }
 
-/**
- * This function should only be called for virtual addreses with attribute `PageType::Special`.
- */
-static MMIORegionPointer GetMMIOHandler(const PageTable& page_table, VAddr vaddr) {
-    for (const auto& region : page_table.special_regions) {
-        if (vaddr >= region.base && vaddr < (region.base + region.size)) {
-            return region.handler;
-        }
-    }
-    ASSERT_MSG(false, "Mapped IO page without a handler @ {:08X}", vaddr);
-    return nullptr; // Should never happen
+size_t MemorySystem::SerializePageTable(std::shared_ptr<PageTable> page_table) {
+    return impl->SerializePageTable(page_table);
+}
+
+std::shared_ptr<PageTable> MemorySystem::UnserializePageTable(size_t page_table_index) {
+    return impl->UnserializePageTable(page_table_index);
 }
 
 template <typename T>
@@ -308,16 +281,14 @@ T ReadMMIO(MMIORegionPointer mmio_handler, VAddr addr);
 
 template <typename T>
 T MemorySystem::Read(const VAddr vaddr) {
-    const u8* page_pointer = impl->current_page_table->pointers[vaddr >> PAGE_BITS];
-    if (page_pointer) {
+    if (const u8* pointer = impl->current_page_table->Get(vaddr)) {
         // NOTE: Avoid adding any extra logic to this fast-path block
         T value;
-        std::memcpy(&value, &page_pointer[vaddr & PAGE_MASK], sizeof(T));
+        std::memcpy(&value, pointer, sizeof(T));
         return value;
     }
 
-    PageType type = impl->current_page_table->attributes[vaddr >> PAGE_BITS];
-    switch (type) {
+    switch (impl->current_page_table->GetAttribute(vaddr)) {
     case PageType::Unmapped:
         LOG_ERROR(HW_Memory, "unmapped Read{} @ 0x{:08X}", sizeof(T) * 8, vaddr);
         return 0;
@@ -332,7 +303,7 @@ T MemorySystem::Read(const VAddr vaddr) {
         return value;
     }
     case PageType::Special:
-        return ReadMMIO<T>(GetMMIOHandler(*impl->current_page_table, vaddr), vaddr);
+        return ReadMMIO<T>(impl->current_page_table->GetMMIOHandler(vaddr), vaddr);
     default:
         UNREACHABLE();
     }
@@ -343,15 +314,13 @@ void WriteMMIO(MMIORegionPointer mmio_handler, VAddr addr, const T data);
 
 template <typename T>
 void MemorySystem::Write(const VAddr vaddr, const T data) {
-    u8* page_pointer = impl->current_page_table->pointers[vaddr >> PAGE_BITS];
-    if (page_pointer) {
+    if (u8* pointer = impl->current_page_table->Get(vaddr)) {
         // NOTE: Avoid adding any extra logic to this fast-path block
-        std::memcpy(&page_pointer[vaddr & PAGE_MASK], &data, sizeof(T));
+        std::memcpy(pointer, &data, sizeof(T));
         return;
     }
 
-    PageType type = impl->current_page_table->attributes[vaddr >> PAGE_BITS];
-    switch (type) {
+    switch (impl->current_page_table->GetAttribute(vaddr)) {
     case PageType::Unmapped:
         LOG_ERROR(HW_Memory, "unmapped Write{} 0x{:08X} @ 0x{:08X}", sizeof(data) * 8, (u32)data,
                   vaddr);
@@ -365,30 +334,27 @@ void MemorySystem::Write(const VAddr vaddr, const T data) {
         break;
     }
     case PageType::Special:
-        WriteMMIO<T>(GetMMIOHandler(*impl->current_page_table, vaddr), vaddr, data);
+        WriteMMIO<T>(impl->current_page_table->GetMMIOHandler(vaddr), vaddr, data);
         break;
     default:
         UNREACHABLE();
     }
 }
 
-bool IsValidVirtualAddress(const Kernel::Process& process, const VAddr vaddr) {
+bool MemorySystem::IsValidVirtualAddress(const Kernel::Process& process, const VAddr vaddr) {
     auto& page_table = *process.vm_manager.page_table;
 
-    auto page_pointer = page_table.pointers[vaddr >> PAGE_BITS];
-    if (page_pointer)
+    if (auto page_pointer = page_table.Get(vaddr))
         return true;
 
-    if (page_table.attributes[vaddr >> PAGE_BITS] == PageType::RasterizerCachedMemory)
+    if (page_table.GetAttribute(vaddr) == PageType::RasterizerCachedMemory)
         return true;
 
-    if (page_table.attributes[vaddr >> PAGE_BITS] != PageType::Special)
+    if (page_table.GetAttribute(vaddr) != PageType::Special)
         return false;
 
-    MMIORegionPointer mmio_region = GetMMIOHandler(page_table, vaddr);
-    if (mmio_region) {
+    if (MMIORegionPointer mmio_region = page_table.GetMMIOHandler(vaddr))
         return mmio_region->IsValidAddress(vaddr);
-    }
 
     return false;
 }
@@ -398,13 +364,11 @@ bool MemorySystem::IsValidPhysicalAddress(const PAddr paddr) {
 }
 
 u8* MemorySystem::GetPointer(const VAddr vaddr) {
-    u8* page_pointer = impl->current_page_table->pointers[vaddr >> PAGE_BITS];
-    if (page_pointer) {
-        return page_pointer + (vaddr & PAGE_MASK);
+    if (u8* pointer = impl->current_page_table->Get(vaddr)) {
+        return pointer;
     }
 
-    if (impl->current_page_table->attributes[vaddr >> PAGE_BITS] ==
-        PageType::RasterizerCachedMemory) {
+    if (impl->current_page_table->GetAttribute(vaddr) == PageType::RasterizerCachedMemory) {
         return GetPointerForRasterizerCache(vaddr);
     }
 
@@ -426,11 +390,11 @@ std::string MemorySystem::ReadCString(VAddr vaddr, std::size_t max_length) {
     return string;
 }
 
-u8* MemorySystem::GetPhysicalPointer(PAddr address) {
-    return GetPhysicalRef(address);
+MemoryRef MemorySystem::GetPhysicalRef(PAddr address) {
+    return GetRefForPointer(GetPhysicalPointer(address));
 }
 
-MemoryRef MemorySystem::GetPhysicalRef(PAddr address) {
+u8* MemorySystem::GetPhysicalPointer(PAddr address) {
     struct MemoryArea {
         PAddr paddr_base;
         u32 size;
@@ -455,30 +419,20 @@ MemoryRef MemorySystem::GetPhysicalRef(PAddr address) {
         return nullptr;
     }
 
-    u32 offset_into_region = address - area->paddr_base;
+    const u32 offset_into_region = address - area->paddr_base;
 
-    std::shared_ptr<BackingMem> target_mem = nullptr;
     switch (area->paddr_base) {
     case VRAM_PADDR:
-        target_mem = impl->vram_mem;
-        break;
+        return impl->vram.Get() + offset_into_region;
     case DSP_RAM_PADDR:
-        target_mem = impl->dsp_mem;
-        break;
+        return impl->dspram.Get() + offset_into_region;
     case FCRAM_PADDR:
-        target_mem = impl->fcram_mem;
-        break;
+        return impl->fcram.Get() + offset_into_region;
     case N3DS_EXTRA_RAM_PADDR:
-        target_mem = impl->n3ds_extra_ram_mem;
-        break;
+        return impl->n3ds_extra_ram.Get() + offset_into_region;
     default:
         UNREACHABLE();
     }
-    if (offset_into_region >= target_mem->GetSize()) {
-        return {nullptr};
-    }
-
-    return {target_mem, offset_into_region};
 }
 
 /// For a rasterizer-accessible PAddr, gets a list of all possible VAddr
@@ -512,7 +466,7 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
         for (VAddr vaddr : PhysicalToVirtualAddressForRasterizer(paddr)) {
             impl->cache_marker.Mark(vaddr, cached);
             for (auto page_table : impl->page_table_list) {
-                PageType& page_type = page_table->attributes[vaddr >> PAGE_BITS];
+                const PageType page_type = page_table->GetAttribute(vaddr);
 
                 if (cached) {
                     // Switch page type to cached if now cached
@@ -522,8 +476,8 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
                         // address space, for example, a system module need not have a VRAM mapping.
                         break;
                     case PageType::Memory:
-                        page_type = PageType::RasterizerCachedMemory;
-                        page_table->pointers[vaddr >> PAGE_BITS] = nullptr;
+                        page_table->SetRasterizerCachedMemory(vaddr);
+                        impl->backing_memory->Unmap(*page_table, vaddr, PAGE_SIZE);
                         break;
                     default:
                         UNREACHABLE();
@@ -536,9 +490,9 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
                         // address space, for example, a system module need not have a VRAM mapping.
                         break;
                     case PageType::RasterizerCachedMemory: {
-                        page_type = PageType::Memory;
-                        page_table->pointers[vaddr >> PAGE_BITS] =
-                            GetPointerForRasterizerCache(vaddr & ~PAGE_MASK);
+                        u8* memory = GetPointerForRasterizerCache(vaddr & ~PAGE_MASK);
+                        page_table->SetMemory(vaddr, memory);
+                        impl->backing_memory->Map(*page_table, vaddr, memory, PAGE_SIZE);
                         break;
                     }
                     default:
@@ -653,7 +607,7 @@ void MemorySystem::ReadBlock(const Kernel::Process& process, const VAddr src_add
         const std::size_t copy_amount = std::min(PAGE_SIZE - page_offset, remaining_size);
         const VAddr current_vaddr = static_cast<VAddr>((page_index << PAGE_BITS) + page_offset);
 
-        switch (page_table.attributes[page_index]) {
+        switch (page_table.GetAttribute(current_vaddr)) {
         case PageType::Unmapped: {
             LOG_ERROR(HW_Memory,
                       "unmapped ReadBlock @ 0x{:08X} (start address = 0x{:08X}, size = {})",
@@ -662,14 +616,14 @@ void MemorySystem::ReadBlock(const Kernel::Process& process, const VAddr src_add
             break;
         }
         case PageType::Memory: {
-            DEBUG_ASSERT(page_table.pointers[page_index]);
 
-            const u8* src_ptr = page_table.pointers[page_index] + page_offset;
+            const u8* src_ptr = page_table.Get(current_vaddr);
+            DEBUG_ASSERT(src_ptr);
             std::memcpy(dest_buffer, src_ptr, copy_amount);
             break;
         }
         case PageType::Special: {
-            MMIORegionPointer handler = GetMMIOHandler(page_table, current_vaddr);
+            MMIORegionPointer handler = page_table.GetMMIOHandler(current_vaddr);
             DEBUG_ASSERT(handler);
             handler->ReadBlock(current_vaddr, dest_buffer, copy_amount);
             break;
@@ -718,7 +672,7 @@ void MemorySystem::WriteBlock(const Kernel::Process& process, const VAddr dest_a
         const std::size_t copy_amount = std::min(PAGE_SIZE - page_offset, remaining_size);
         const VAddr current_vaddr = static_cast<VAddr>((page_index << PAGE_BITS) + page_offset);
 
-        switch (page_table.attributes[page_index]) {
+        switch (page_table.GetAttribute(current_vaddr)) {
         case PageType::Unmapped: {
             LOG_ERROR(HW_Memory,
                       "unmapped WriteBlock @ 0x{:08X} (start address = 0x{:08X}, size = {})",
@@ -726,14 +680,13 @@ void MemorySystem::WriteBlock(const Kernel::Process& process, const VAddr dest_a
             break;
         }
         case PageType::Memory: {
-            DEBUG_ASSERT(page_table.pointers[page_index]);
-
-            u8* dest_ptr = page_table.pointers[page_index] + page_offset;
+            u8* dest_ptr = page_table.Get(current_vaddr);
+            DEBUG_ASSERT(dest_ptr);
             std::memcpy(dest_ptr, src_buffer, copy_amount);
             break;
         }
         case PageType::Special: {
-            MMIORegionPointer handler = GetMMIOHandler(page_table, current_vaddr);
+            MMIORegionPointer handler = page_table.GetMMIOHandler(current_vaddr);
             DEBUG_ASSERT(handler);
             handler->WriteBlock(current_vaddr, src_buffer, copy_amount);
             break;
@@ -768,7 +721,7 @@ void MemorySystem::ZeroBlock(const Kernel::Process& process, const VAddr dest_ad
         const std::size_t copy_amount = std::min(PAGE_SIZE - page_offset, remaining_size);
         const VAddr current_vaddr = static_cast<VAddr>((page_index << PAGE_BITS) + page_offset);
 
-        switch (page_table.attributes[page_index]) {
+        switch (page_table.GetAttribute(current_vaddr)) {
         case PageType::Unmapped: {
             LOG_ERROR(HW_Memory,
                       "unmapped ZeroBlock @ 0x{:08X} (start address = 0x{:08X}, size = {})",
@@ -776,14 +729,13 @@ void MemorySystem::ZeroBlock(const Kernel::Process& process, const VAddr dest_ad
             break;
         }
         case PageType::Memory: {
-            DEBUG_ASSERT(page_table.pointers[page_index]);
-
-            u8* dest_ptr = page_table.pointers[page_index] + page_offset;
+            u8* dest_ptr = page_table.Get(current_vaddr);
+            DEBUG_ASSERT(dest_ptr);
             std::memset(dest_ptr, 0, copy_amount);
             break;
         }
         case PageType::Special: {
-            MMIORegionPointer handler = GetMMIOHandler(page_table, current_vaddr);
+            MMIORegionPointer handler = page_table.GetMMIOHandler(current_vaddr);
             DEBUG_ASSERT(handler);
             handler->WriteBlock(current_vaddr, zeros.data(), copy_amount);
             break;
@@ -821,7 +773,7 @@ void MemorySystem::CopyBlock(const Kernel::Process& dest_process,
         const std::size_t copy_amount = std::min(PAGE_SIZE - page_offset, remaining_size);
         const VAddr current_vaddr = static_cast<VAddr>((page_index << PAGE_BITS) + page_offset);
 
-        switch (page_table.attributes[page_index]) {
+        switch (page_table.GetAttribute(current_vaddr)) {
         case PageType::Unmapped: {
             LOG_ERROR(HW_Memory,
                       "unmapped CopyBlock @ 0x{:08X} (start address = 0x{:08X}, size = {})",
@@ -830,13 +782,13 @@ void MemorySystem::CopyBlock(const Kernel::Process& dest_process,
             break;
         }
         case PageType::Memory: {
-            DEBUG_ASSERT(page_table.pointers[page_index]);
-            const u8* src_ptr = page_table.pointers[page_index] + page_offset;
+            const u8* src_ptr = page_table.Get(current_vaddr);
+            DEBUG_ASSERT(src_ptr);
             WriteBlock(dest_process, dest_addr, src_ptr, copy_amount);
             break;
         }
         case PageType::Special: {
-            MMIORegionPointer handler = GetMMIOHandler(page_table, current_vaddr);
+            MMIORegionPointer handler = page_table.GetMMIOHandler(current_vaddr);
             DEBUG_ASSERT(handler);
             std::vector<u8> buffer(copy_amount);
             handler->ReadBlock(current_vaddr, buffer.data(), buffer.size());
@@ -903,22 +855,27 @@ void WriteMMIO<u64>(MMIORegionPointer mmio_handler, VAddr addr, const u64 data) 
 }
 
 u32 MemorySystem::GetFCRAMOffset(const u8* pointer) {
-    ASSERT(pointer >= impl->fcram.get() && pointer <= impl->fcram.get() + Memory::FCRAM_N3DS_SIZE);
-    return static_cast<u32>(pointer - impl->fcram.get());
+    ASSERT(pointer >= impl->fcram.Get() && pointer <= impl->fcram.Get() + Memory::FCRAM_N3DS_SIZE);
+    return static_cast<u32>(pointer - impl->fcram.Get());
+}
+
+u32 MemorySystem::GetFCRAMOffset(MemoryRef ref) {
+    u64 offset = static_cast<u64>(ref - impl->fcram.GetRef());
+    ASSERT(offset < Memory::FCRAM_N3DS_SIZE);
+    return static_cast<u32>(offset);
 }
 
 u8* MemorySystem::GetFCRAMPointer(u32 offset) {
     ASSERT(offset <= Memory::FCRAM_N3DS_SIZE);
-    return impl->fcram.get() + offset;
+    return impl->fcram.Get() + offset;
 }
 
 MemoryRef MemorySystem::GetFCRAMRef(u32 offset) {
-    ASSERT(offset <= Memory::FCRAM_N3DS_SIZE);
-    return MemoryRef(impl->fcram_mem, offset);
+    return GetRefForPointer(GetFCRAMPointer(offset));
 }
 
-void MemorySystem::SetDSP(AudioCore::DspInterface& dsp) {
-    impl->dsp = &dsp;
+u8* MemorySystem::GetDspMemory() const {
+    return impl->dspram.Get();
 }
 
 } // namespace Memory

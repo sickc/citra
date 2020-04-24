@@ -80,8 +80,6 @@ add_library(common STATIC
     logging/text_formatter.cpp
     logging/text_formatter.h
     math_util.h
-    memory_ref.h
-    memory_ref.cpp
     microprofile.cpp
     microprofile.h
     microprofileui.h

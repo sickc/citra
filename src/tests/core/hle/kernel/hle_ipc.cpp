@@ -137,7 +137,7 @@ TEST_CASE("HLERequestContext::PopulateFromIncomingCommandBuffer", "[core][kernel
 
     SECTION("translates StaticBuffer descriptors") {
         auto mem = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef buffer{mem};
+        u8* buffer{mem};
         std::fill(buffer.GetPtr(), buffer.GetPtr() + buffer.GetSize(), 0xAB);
 
         VAddr target_address = 0x10000000;
@@ -160,7 +160,7 @@ TEST_CASE("HLERequestContext::PopulateFromIncomingCommandBuffer", "[core][kernel
 
     SECTION("translates MappedBuffer descriptors") {
         auto mem = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef buffer{mem};
+        u8* buffer{mem};
         std::fill(buffer.GetPtr(), buffer.GetPtr() + buffer.GetSize(), 0xCD);
 
         VAddr target_address = 0x10000000;
@@ -185,11 +185,11 @@ TEST_CASE("HLERequestContext::PopulateFromIncomingCommandBuffer", "[core][kernel
 
     SECTION("translates mixed params") {
         auto mem_static = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef buffer_static{mem_static};
+        u8* buffer_static{mem_static};
         std::fill(buffer_static.GetPtr(), buffer_static.GetPtr() + buffer_static.GetSize(), 0xCE);
 
         auto mem_mapped = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef buffer_mapped{mem_mapped};
+        u8* buffer_mapped{mem_mapped};
         std::fill(buffer_mapped.GetPtr(), buffer_mapped.GetPtr() + buffer_mapped.GetSize(), 0xDF);
 
         VAddr target_address_static = 0x10000000;
@@ -319,7 +319,7 @@ TEST_CASE("HLERequestContext::WriteToOutgoingCommandBuffer", "[core][kernel]") {
         context.AddStaticBuffer(0, input_buffer);
 
         auto output_mem = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef output_buffer{output_mem};
+        u8* output_buffer{output_mem};
 
         VAddr target_address = 0x10000000;
         auto result = process->vm_manager.MapBackingMemory(
@@ -350,7 +350,7 @@ TEST_CASE("HLERequestContext::WriteToOutgoingCommandBuffer", "[core][kernel]") {
         std::fill(input_buffer.begin(), input_buffer.end(), 0xAB);
 
         auto output_mem = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-        MemoryRef output_buffer{output_mem};
+        u8* output_buffer{output_mem};
 
         VAddr target_address = 0x10000000;
         auto result = process->vm_manager.MapBackingMemory(

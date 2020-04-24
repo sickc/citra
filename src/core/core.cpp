@@ -377,8 +377,6 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window, u32 system_mo
         dsp_core = std::make_unique<AudioCore::DspHle>(*memory);
     }
 
-    memory->SetDSP(*dsp_core);
-
     dsp_core->SetSink(Settings::values.sink_id, Settings::values.audio_device_id);
     dsp_core->EnableStretching(Settings::values.enable_audio_stretching);
 
@@ -601,9 +599,10 @@ void System::serialize(Archive& ar, const unsigned int file_version) {
     // This needs to be set from somewhere - might as well be here!
     if (Archive::is_loading::value) {
         Service::GSP::SetGlobalModule(*this);
-        memory->SetDSP(*dsp_core);
         cheat_engine->Connect();
         VideoCore::g_renderer->Sync();
+        for (u32 i = 0; i < num_cores; i++) {
+        }
     }
 }
 

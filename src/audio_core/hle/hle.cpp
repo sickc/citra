@@ -62,8 +62,6 @@ public:
     std::size_t GetPipeReadableSize(DspPipe pipe_number) const;
     void PipeWrite(DspPipe pipe_number, const std::vector<u8>& buffer);
 
-    std::array<u8, Memory::DSP_RAM_SIZE>& GetDspMemory();
-
     void SetServiceToInterrupt(std::weak_ptr<DSP_DSP> dsp);
 
 private:
@@ -82,7 +80,7 @@ private:
     DspState dsp_state = DspState::Off;
     std::array<std::vector<u8>, num_dsp_pipe> pipe_data{};
 
-    HLE::DspMemory dsp_memory;
+    HLE::DspMemory& dsp_memory;
     std::array<HLE::Source, HLE::num_sources> sources{{
         HLE::Source(0),  HLE::Source(1),  HLE::Source(2),  HLE::Source(3),  HLE::Source(4),
         HLE::Source(5),  HLE::Source(6),  HLE::Source(7),  HLE::Source(8),  HLE::Source(9),
@@ -111,7 +109,7 @@ private:
     friend class boost::serialization::access;
 };
 
-DspHle::Impl::Impl(DspHle& parent_, Memory::MemorySystem& memory) : parent(parent_) {
+DspHle::Impl::Impl(DspHle& parent_, Memory::MemorySystem& memory) : dsp_memory(*reinterpret_cast<HLE::DspMemory*>(memory.GetDspMemory())), parent(parent_) {
     dsp_memory.raw_memory.fill(0);
 
     for (auto& source : sources) {
@@ -309,10 +307,6 @@ void DspHle::Impl::PipeWrite(DspPipe pipe_number, const std::vector<u8>& buffer)
     }
 }
 
-std::array<u8, Memory::DSP_RAM_SIZE>& DspHle::Impl::GetDspMemory() {
-    return dsp_memory.raw_memory;
-}
-
 void DspHle::Impl::SetServiceToInterrupt(std::weak_ptr<DSP_DSP> dsp) {
     dsp_dsp = std::move(dsp);
 }
@@ -476,10 +470,6 @@ size_t DspHle::GetPipeReadableSize(DspPipe pipe_number) const {
 
 void DspHle::PipeWrite(DspPipe pipe_number, const std::vector<u8>& buffer) {
     impl->PipeWrite(pipe_number, buffer);
-}
-
-std::array<u8, Memory::DSP_RAM_SIZE>& DspHle::GetDspMemory() {
-    return impl->GetDspMemory();
 }
 
 void DspHle::SetServiceToInterrupt(std::weak_ptr<DSP_DSP> dsp) {

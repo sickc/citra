@@ -12,7 +12,7 @@
 #include "core/arm/dynarmic/arm_dynarmic_cp15.h"
 
 namespace Memory {
-struct PageTable;
+class PageTable;
 class MemorySystem;
 } // namespace Memory
 
