@@ -2,8 +2,10 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <QMenu>
 #include <QMessageBox>
 #include <QStandardItemModel>
+#include "citra_qt/configuration/config.h"
 #include "citra_qt/configuration/configure_hotkeys.h"
 #include "citra_qt/hotkeys.h"
 #include "citra_qt/util/sequence_dialog/sequence_dialog.h"
@@ -20,6 +22,9 @@ ConfigureHotkeys::ConfigureHotkeys(QWidget* parent)
     model->setHorizontalHeaderLabels({tr("Action"), tr("Hotkey"), tr("Context")});
 
     connect(ui->hotkey_list, &QTreeView::doubleClicked, this, &ConfigureHotkeys::Configure);
+    connect(ui->hotkey_list, &QTreeView::customContextMenuRequested, this,
+            &ConfigureHotkeys::PopupContextMenu);
+    ui->hotkey_list->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->hotkey_list->setModel(model);
 
     // TODO(Kloen): Make context configurable as well (hiding the column for now)
@@ -27,6 +32,10 @@ ConfigureHotkeys::ConfigureHotkeys(QWidget* parent)
 
     ui->hotkey_list->setColumnWidth(0, 200);
     ui->hotkey_list->resizeColumnToContents(1);
+
+    connect(ui->button_restore_defaults, &QPushButton::clicked, this,
+            &ConfigureHotkeys::RestoreDefaults);
+    connect(ui->button_clear_all, &QPushButton::clicked, this, &ConfigureHotkeys::ClearAll);
 }
 
 ConfigureHotkeys::~ConfigureHotkeys() = default;
@@ -75,7 +84,6 @@ void ConfigureHotkeys::Configure(QModelIndex index) {
     }
 
     index = index.sibling(index.row(), 1);
-    auto* const model = ui->hotkey_list->model();
     const auto previous_key = model->data(index);
 
     SequenceDialog hotkey_dialog{this};
@@ -118,6 +126,58 @@ void ConfigureHotkeys::ApplyConfiguration(HotkeyRegistry& registry) {
     }
 
     registry.SaveHotkeys();
+}
+
+void ConfigureHotkeys::RestoreDefaults() {
+    for (int r = 0; r < model->rowCount(); ++r) {
+        const QStandardItem* parent = model->item(r, 0);
+
+        for (int r2 = 0; r2 < parent->rowCount(); ++r2) {
+            model->item(r, 0)->child(r2, 1)->setText(Config::default_hotkeys[r2].shortcut.first);
+        }
+    }
+}
+
+void ConfigureHotkeys::ClearAll() {
+    for (int r = 0; r < model->rowCount(); ++r) {
+        const QStandardItem* parent = model->item(r, 0);
+
+        for (int r2 = 0; r2 < parent->rowCount(); ++r2) {
+            model->item(r, 0)->child(r2, 1)->setText(tr(""));
+        }
+    }
+}
+
+void ConfigureHotkeys::PopupContextMenu(const QPoint& menu_location) {
+    QModelIndex index = ui->hotkey_list->indexAt(menu_location);
+    if (!index.parent().isValid()) {
+        return;
+    }
+
+    const auto selected = index.sibling(index.row(), 1);
+    QMenu context_menu;
+
+    QAction* restore_default = context_menu.addAction(tr("Restore Default"));
+    QAction* clear = context_menu.addAction(tr("Clear"));
+
+    connect(restore_default, &QAction::triggered, [this, selected] {
+        const QKeySequence& default_key_sequence = QKeySequence::fromString(
+            Config::default_hotkeys[selected.row()].shortcut.first, QKeySequence::NativeText);
+        const bool key_sequence_used = IsUsedKey(default_key_sequence);
+
+        if (key_sequence_used &&
+            default_key_sequence != QKeySequence(model->data(selected).toString())) {
+
+            QMessageBox::warning(
+                this, tr("Conflicting Key Sequence"),
+                tr("The default key sequence is already assigned to another key."));
+        } else {
+            model->setData(selected, default_key_sequence.toString(QKeySequence::NativeText));
+        }
+    });
+    connect(clear, &QAction::triggered, [this, selected] { model->setData(selected, tr("")); });
+
+    context_menu.exec(ui->hotkey_list->viewport()->mapToGlobal(menu_location));
 }
 
 void ConfigureHotkeys::RetranslateUI() {

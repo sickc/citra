@@ -44,6 +44,10 @@ private:
     bool IsUsedKey(QKeySequence key_sequence) const;
     QList<QKeySequence> GetUsedKeyList() const;
 
+    void RestoreDefaults();
+    void ClearAll();
+    void PopupContextMenu(const QPoint& menu_location);
+
     std::unique_ptr<Ui::ConfigureHotkeys> ui;
 
     /**
