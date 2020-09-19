@@ -12,7 +12,6 @@
 #include "common/logging/log.h"
 #include "core/3ds.h"
 #include "core/core.h"
-#include "core/core_timing.h"
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/handle_table.h"
@@ -25,7 +24,15 @@
 #include "core/movie.h"
 #include "video_core/video_core.h"
 
-SERVICE_CONSTRUCT_IMPL(Service::HID::Module)
+namespace boost::serialization {
+template <class Archive>
+void load_construct_data(Archive& ar, Service::HID::Module* t, const unsigned int) {
+    ::new (t) Service::HID::Module(Core::Global<Core::System>(), true);
+}
+template void load_construct_data<iarchive>(iarchive& ar, Service::HID::Module* t,
+                                            const unsigned int);
+} // namespace boost::serialization
+
 SERIALIZE_EXPORT_IMPL(Service::HID::Module)
 
 namespace Service::HID {
@@ -54,11 +61,6 @@ void Module::serialize(Archive& ar, const unsigned int file_version) {
     // Devices are set from the implementation (and are stateless afaik)
 }
 SERIALIZE_IMPL(Module)
-
-// Updating period for each HID device. These empirical values are measured from a 11.2 3DS.
-constexpr u64 pad_update_ticks = BASE_CLOCK_RATE_ARM11 / 234;
-constexpr u64 accelerometer_update_ticks = BASE_CLOCK_RATE_ARM11 / 104;
-constexpr u64 gyroscope_update_ticks = BASE_CLOCK_RATE_ARM11 / 101;
 
 constexpr float accelerometer_coef = 512.0f; // measured from hw test result
 constexpr float gyroscope_coef = 14.375f; // got from hwtest GetGyroscopeLowRawToDpsCoefficient call
@@ -425,7 +427,7 @@ std::shared_ptr<Module> Module::Interface::GetModule() const {
     return hid;
 }
 
-Module::Module(Core::System& system) : system(system) {
+Module::Module(Core::System& system, bool is_deserializing) : system(system) {
     using namespace Kernel;
 
     shared_mem =
@@ -456,7 +458,10 @@ Module::Module(Core::System& system) : system(system) {
             UpdateGyroscopeCallback(userdata, cycles_late);
         });
 
-    timing.ScheduleEvent(pad_update_ticks, pad_update_event);
+    if (!is_deserializing) {
+        // When deserializing, this should already be in the event_queue
+        timing.ScheduleEvent(pad_update_ticks, pad_update_event);
+    }
 }
 
 void Module::ReloadInputDevices() {

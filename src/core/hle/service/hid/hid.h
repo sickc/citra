@@ -13,6 +13,7 @@
 #include "common/bit_field.h"
 #include "common/common_funcs.h"
 #include "common/common_types.h"
+#include "core/core_timing.h"
 #include "core/frontend/input.h"
 #include "core/hle/service/service.h"
 #include "core/settings.h"
@@ -198,7 +199,7 @@ DirectionState GetStickDirectionState(s16 circle_pad_x, s16 circle_pad_y);
 
 class Module final {
 public:
-    explicit Module(Core::System& system);
+    explicit Module(Core::System& system, bool is_deserializing = false);
 
     class Interface : public ServiceFramework<Interface> {
     public:
@@ -296,6 +297,11 @@ public:
     void ReloadInputDevices();
 
     const PadState& GetState() const;
+
+    // Updating period for each HID device. These empirical values are measured from a 11.2 3DS.
+    static constexpr u64 pad_update_ticks = BASE_CLOCK_RATE_ARM11 / 234;
+    static constexpr u64 accelerometer_update_ticks = BASE_CLOCK_RATE_ARM11 / 104;
+    static constexpr u64 gyroscope_update_ticks = BASE_CLOCK_RATE_ARM11 / 101;
 
 private:
     void LoadInputDevices();
