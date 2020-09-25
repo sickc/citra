@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include "common/alignment.h"
-#include "common/memory_ref.h"
 #include "core/core.h"
 #include "core/hle/ipc.h"
 #include "core/hle/kernel/handle_table.h"
@@ -195,7 +194,7 @@ ResultCode TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySy
             // TODO(Subv): Perform permission checks.
 
             // Reserve a page of memory before the mapped buffer
-            std::shared_ptr<BackingMem> reserve_buffer =
+            /*std::shared_ptr<BackingMem> reserve_buffer =
                 std::make_shared<BufferMem>(Memory::PAGE_SIZE);
             dst_process->vm_manager.MapBackingMemoryToBase(
                 Memory::IPC_MAPPING_VADDR, Memory::IPC_MAPPING_SIZE, reserve_buffer,
@@ -221,7 +220,7 @@ ResultCode TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySy
 
             mapped_buffer_context.push_back({permissions, size, source_address,
                                              target_address + page_offset, std::move(buffer),
-                                             std::move(reserve_buffer)});
+                                             std::move(reserve_buffer)});*/
 
             break;
         }

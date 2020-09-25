@@ -172,8 +172,6 @@ void KernelSystem::serialize(Archive& ar, const unsigned int file_version) {
     for (auto& thread_manager : thread_managers) {
         ar&* thread_manager.get();
     }
-    ar& config_mem_handler;
-    ar& shared_page_handler;
     ar& stored_processes;
     ar& next_thread_id;
     // Deliberately don't include debugger info to allow debugging through loads

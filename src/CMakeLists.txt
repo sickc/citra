@@ -101,7 +101,7 @@ add_subdirectory(video_core)
 add_subdirectory(audio_core)
 add_subdirectory(network)
 add_subdirectory(input_common)
-add_subdirectory(tests)
+#add_subdirectory(tests)
 
 if (ENABLE_SDL2)
     add_subdirectory(citra)

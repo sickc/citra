@@ -11,7 +11,7 @@
 
 TEST_CASE("Memory Basics", "[kernel][memory]") {
     auto mem = std::make_shared<BufferMem>(Memory::PAGE_SIZE);
-    MemoryRef block{mem};
+    u8* block{mem};
     Memory::MemorySystem memory;
     SECTION("mapping memory") {
         // Because of the PageTable, Kernel::VMManager is too big to be created on the stack.

@@ -12,7 +12,6 @@
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/split_member.hpp>
 #include "common/common_types.h"
-#include "common/memory_ref.h"
 #include "core/hle/result.h"
 #include "core/memory.h"
 #include "core/mmio.h"
@@ -75,7 +74,7 @@ struct VirtualMemoryArea {
 
     // Settings for type = BackingMemory
     /// Pointer backing this VMA. It will not be destroyed or freed when the VMA is removed.
-    MemoryRef backing_memory{};
+    Memory::MemoryRef backing_memory{};
 
     // Settings for type = MMIO
     /// Physical address of the register area this VMA maps to.
@@ -85,8 +84,6 @@ struct VirtualMemoryArea {
     /// Tests if this area can be merged to the right with `next`.
     bool CanBeMergedWith(const VirtualMemoryArea& next) const;
 
-private:
-    friend class boost::serialization::access;
     template <class Archive>
     void serialize(Archive& ar, const unsigned int file_version) {
         ar& base;
@@ -152,7 +149,7 @@ public:
      * @param state MemoryState tag to attach to the VMA.
      * @returns The address at which the memory was mapped.
      */
-    ResultVal<VAddr> MapBackingMemoryToBase(VAddr base, u32 region_size, MemoryRef memory, u32 size,
+    ResultVal<VAddr> MapBackingMemoryToBase(VAddr base, u32 region_size, Memory::MemoryRef memory, u32 size,
                                             MemoryState state);
     /**
      * Maps an unmanaged host memory pointer at a given address.
@@ -162,7 +159,7 @@ public:
      * @param size Size of the mapping.
      * @param state MemoryState tag to attach to the VMA.
      */
-    ResultVal<VMAHandle> MapBackingMemory(VAddr target, MemoryRef memory, u32 size,
+    ResultVal<VMAHandle> MapBackingMemory(VAddr target, Memory::MemoryRef memory, u32 size,
                                           MemoryState state);
 
     /**
@@ -205,7 +202,7 @@ public:
     void LogLayout(Log::Level log_level) const;
 
     /// Gets a list of backing memory blocks for the specified range
-    ResultVal<std::vector<std::pair<MemoryRef, u32>>> GetBackingBlocksForRange(VAddr address,
+    ResultVal<std::vector<std::pair<Memory::MemoryRef, u32>>> GetBackingBlocksForRange(VAddr address,
                                                                                u32 size);
 
     /// Each VMManager has its own page table, which is set as the main one when the owning process
@@ -259,14 +256,22 @@ private:
     // assert. VMManager locks itself after deserialization.
     bool is_locked{};
 
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int) {
-        ar& vma_map;
-        ar& page_table;
-        if (Archive::is_loading::value) {
-            is_locked = true;
-        }
+    template<class Archive>
+    void save(Archive& ar, const unsigned int version) const {
+        ar << vma_map;
+        const size_t page_table_index = memory.SerializePageTable(page_table);
+        ar << page_table_index;
     }
+
+    template<class Archive>
+    void load(Archive& ar, const unsigned int version) {
+        ar >> vma_map;
+        size_t page_table_index;
+        ar >> page_table_index;
+        page_table = memory.UnserializePageTable(page_table_index);
+    }
+
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
     friend class boost::serialization::access;
 };
 } // namespace Kernel
