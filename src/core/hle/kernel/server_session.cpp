@@ -124,8 +124,13 @@ ResultCode ServerSession::HandleSyncRequest(std::shared_ptr<Thread> thread) {
             // it takes for svcSendSyncRequest to return when performing the SetLcdForceBlack IPC
             // request to the GSP:GPU service in a n3DS with firmware 11.6. The measured values have
             // a high variance and vary between models.
+            if(name.substr(0,4) == "Path"){
+                static constexpr u64 IPCDelayNanoseconds = 10000000;
+                thread->WakeAfterDelay(IPCDelayNanoseconds);
+            } else {
             static constexpr u64 IPCDelayNanoseconds = 39000;
             thread->WakeAfterDelay(IPCDelayNanoseconds);
+            }
         } else {
             // Add the thread to the list of threads that have issued a sync request with this
             // server.
