@@ -73,4 +73,5 @@ private:
     Dynarmic::A32::Jit* jit = nullptr;
     std::shared_ptr<Memory::PageTable> current_page_table = nullptr;
     std::map<std::shared_ptr<Memory::PageTable>, std::unique_ptr<Dynarmic::A32::Jit>> jits;
+    std::shared_ptr<Dynarmic::ExclusiveMonitor> exclusive_monitor;
 };

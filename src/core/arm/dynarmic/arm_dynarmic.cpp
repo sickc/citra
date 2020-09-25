@@ -5,6 +5,7 @@
 #include <cstring>
 #include <dynarmic/A32/a32.h>
 #include <dynarmic/A32/context.h>
+#include <dynarmic/exclusive_monitor.h>
 #include "common/assert.h"
 #include "common/microprofile.h"
 #include "core/arm/dynarmic/arm_dynarmic.h"
@@ -100,6 +101,27 @@ public:
         memory.Write64(vaddr, value);
     }
 
+    bool MemoryWriteExclusive8(VAddr vaddr, std::uint8_t value,
+                               [[maybe_unused]] std::uint8_t expected) override {
+        MemoryWrite8(vaddr, value);
+        return true;
+    }
+    bool MemoryWriteExclusive16(VAddr vaddr, std::uint16_t value,
+                                [[maybe_unused]] std::uint16_t expected) override {
+        MemoryWrite16(vaddr, value);
+        return true;
+    }
+    bool MemoryWriteExclusive32(VAddr vaddr, std::uint32_t value,
+                                [[maybe_unused]] std::uint32_t expected) override {
+        MemoryWrite32(vaddr, value);
+        return true;
+    }
+    bool MemoryWriteExclusive64(VAddr vaddr, std::uint64_t value,
+                                [[maybe_unused]] std::uint64_t expected) override {
+        MemoryWrite64(vaddr, value);
+        return true;
+    }
+
     void InterpreterFallback(VAddr pc, std::size_t num_instructions) override {
         // Should never happen.
         UNREACHABLE_MSG("InterpeterFallback reached with pc = 0x{:08x}, code = 0x{:08x}, num = {}",
@@ -153,6 +175,7 @@ ARM_Dynarmic::ARM_Dynarmic(Core::System* system, Memory::MemorySystem& memory, u
                            std::shared_ptr<Core::Timing::Timer> timer)
     : ARM_Interface(id, timer), system(*system), memory(memory),
       cb(std::make_unique<DynarmicUserCallbacks>(*this)) {
+    exclusive_monitor = std::make_shared<Dynarmic::ExclusiveMonitor>(1);
     SetPageTable(memory.GetCurrentPageTable());
 }
 
@@ -324,6 +347,7 @@ void ARM_Dynarmic::ServeBreak() {
 
 std::unique_ptr<Dynarmic::A32::Jit> ARM_Dynarmic::MakeJit() {
     Dynarmic::A32::UserConfig config;
+    config.global_monitor = exclusive_monitor.get();
     config.callbacks = cb.get();
     config.page_table = &current_page_table->GetPointerArray();
     config.coprocessors[15] = std::make_shared<DynarmicCP15>(cp15_state);
