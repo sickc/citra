@@ -17,6 +17,7 @@
 #include "core/hw/gpu.h"
 #include "core/hw/hw.h"
 #include "core/memory.h"
+#include "core/settings.h"
 #include "core/tracer/recorder.h"
 #include "video_core/command_processor.h"
 #include "video_core/debug_utils/debug_utils.h"
@@ -515,7 +516,13 @@ static void VBlankCallback(u64 userdata, s64 cycles_late) {
     Service::GSP::SignalInterrupt(Service::GSP::InterruptId::PDC1);
 
     // Reschedule recurrent event
+    if(Settings::values.custom_refresh_rate){
+        Core::System::GetInstance().CoreTiming().ScheduleEvent(
+        static_cast<u64>(BASE_CLOCK_RATE_ARM11 / Settings::values.screen_refresh_rate) -
+            cycles_late, vblank_event);
+    }else{
     Core::System::GetInstance().CoreTiming().ScheduleEvent(frame_ticks - cycles_late, vblank_event);
+    }
 }
 
 /// Initialize hardware
@@ -551,7 +558,13 @@ void Init(Memory::MemorySystem& memory) {
 
     Core::Timing& timing = Core::System::GetInstance().CoreTiming();
     vblank_event = timing.RegisterEvent("GPU::VBlankCallback", VBlankCallback);
+    if(Settings::values.custom_refresh_rate){
+        timing.ScheduleEvent(
+        static_cast<u64>(BASE_CLOCK_RATE_ARM11 / Settings::values.screen_refresh_rate),
+        vblank_event);
+    }else{
     timing.ScheduleEvent(frame_ticks, vblank_event);
+    }
 
     LOG_DEBUG(HW_GPU, "initialized OK");
 }

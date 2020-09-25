@@ -163,6 +163,8 @@ struct Values {
     bool use_frame_limit_alternate;
     u16 frame_limit;
     u16 frame_limit_alternate;
+    bool custom_refresh_rate;
+    int screen_refresh_rate;
     std::string texture_filter_name;
 
     LayoutOption layout_option;

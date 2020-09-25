@@ -494,6 +494,8 @@ void Config::ReadRendererValues() {
         ReadSetting(QStringLiteral("use_frame_limit_alternate"), false).toBool();
     Settings::values.frame_limit_alternate =
         ReadSetting(QStringLiteral("frame_limit_alternate"), 200).toInt();
+    Settings::values.custom_refresh_rate = ReadSetting(QStringLiteral("custom_refresh_rate"), true).toBool();
+    Settings::values.screen_refresh_rate = ReadSetting(QStringLiteral("screen_refresh_rate"), 60).toInt();
 
     Settings::values.bg_red = ReadSetting(QStringLiteral("bg_red"), 0.0).toFloat();
     Settings::values.bg_green = ReadSetting(QStringLiteral("bg_green"), 0.0).toFloat();
@@ -1001,6 +1003,8 @@ void Config::SaveRendererValues() {
                  Settings::values.use_frame_limit_alternate, false);
     WriteSetting(QStringLiteral("frame_limit_alternate"), Settings::values.frame_limit_alternate,
                  200);
+    WriteSetting(QStringLiteral("custom_refresh_rate"), Settings::values.custom_refresh_rate, true);
+    WriteSetting(QStringLiteral("screen_refresh_rate"), Settings::values.screen_refresh_rate);
 
     // Cast to double because Qt's written float values are not human-readable
     WriteSetting(QStringLiteral("bg_red"), (double)Settings::values.bg_red, 0.0);

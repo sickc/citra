@@ -19,6 +19,10 @@ ConfigureEnhancements::ConfigureEnhancements(QWidget* parent)
 
     SetConfiguration();
 
+    ui->screen_refresh_rate->setEnabled(Settings::values.custom_refresh_rate);
+    connect(ui->custom_refresh_rate, &QCheckBox::toggled, ui->screen_refresh_rate, &QSpinBox::setEnabled);
+    connect(ui->custom_refresh_rate, &QCheckBox::toggled, ui->screen_refresh_rate, &QSpinBox::setEnabled);
+
     ui->layoutBox->setEnabled(!Settings::values.custom_layout);
 
     ui->resolution_factor_combobox->setEnabled(Settings::values.use_hw_renderer);
@@ -68,6 +72,8 @@ void ConfigureEnhancements::SetConfiguration() {
     ui->swap_screen->setChecked(Settings::values.swap_screen);
     ui->toggle_disk_shader_cache->setChecked(Settings::values.use_hw_shader &&
                                              Settings::values.use_disk_shader_cache);
+    ui->custom_refresh_rate->setChecked(Settings::values.custom_refresh_rate);
+    ui->screen_refresh_rate->setValue(Settings::values.screen_refresh_rate);
     ui->upright_screen->setChecked(Settings::values.upright_screen);
     ui->toggle_dump_textures->setChecked(Settings::values.dump_textures);
     ui->toggle_custom_textures->setChecked(Settings::values.custom_textures);
@@ -119,6 +125,8 @@ void ConfigureEnhancements::ApplyConfiguration() {
     Settings::values.swap_screen = ui->swap_screen->isChecked();
     Settings::values.use_disk_shader_cache =
         Settings::values.use_hw_shader && ui->toggle_disk_shader_cache->isChecked();
+    Settings::values.custom_refresh_rate = ui->custom_refresh_rate->isChecked();
+    Settings::values.screen_refresh_rate = ui->screen_refresh_rate->value();
     Settings::values.upright_screen = ui->upright_screen->isChecked();
     Settings::values.dump_textures = ui->toggle_dump_textures->isChecked();
     Settings::values.custom_textures = ui->toggle_custom_textures->isChecked();
