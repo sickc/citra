@@ -88,6 +88,7 @@ const std::array<UISettings::Shortcut, 25> Config::default_hotkeys{
 void Config::ReadValues() {
     ReadControlValues();
     ReadCoreValues();
+    ReadCpuValues();
     ReadRendererValues();
     ReadLayoutValues();
     ReadAudioValues();
@@ -482,6 +483,32 @@ void Config::ReadPathValues() {
     qt_config->endGroup();
 }
 
+void Config::ReadCpuValues() {
+    qt_config->beginGroup(QStringLiteral("Cpu"));
+
+        Settings::values.cpu_accuracy = static_cast<Settings::CPUAccuracy>(
+            ReadSetting(QStringLiteral("cpu_accuracy"), 0).toInt());
+
+        Settings::values.cpuopt_page_tables =
+            ReadSetting(QStringLiteral("cpuopt_page_tables"), true).toBool();
+        Settings::values.cpuopt_block_linking =
+            ReadSetting(QStringLiteral("cpuopt_block_linking"), true).toBool();
+        Settings::values.cpuopt_return_stack_buffer =
+            ReadSetting(QStringLiteral("cpuopt_return_stack_buffer"), true).toBool();
+        Settings::values.cpuopt_fast_dispatcher =
+            ReadSetting(QStringLiteral("cpuopt_fast_dispatcher"), true).toBool();
+        Settings::values.cpuopt_context_elimination =
+            ReadSetting(QStringLiteral("cpuopt_context_elimination"), true).toBool();
+        Settings::values.cpuopt_const_prop =
+            ReadSetting(QStringLiteral("cpuopt_const_prop"), true).toBool();
+        Settings::values.cpuopt_misc_ir =
+            ReadSetting(QStringLiteral("cpuopt_misc_ir"), true).toBool();
+        Settings::values.cpuopt_reduce_misalign_checks =
+            ReadSetting(QStringLiteral("cpuopt_reduce_misalign_checks"), true).toBool();
+
+    qt_config->endGroup();
+}
+
 void Config::ReadRendererValues() {
     qt_config->beginGroup(QStringLiteral("Renderer"));
 
@@ -726,6 +753,7 @@ void Config::ReadWebServiceValues() {
 void Config::SaveValues() {
     SaveControlValues();
     SaveCoreValues();
+    SaveCpuValues();
     SaveRendererValues();
     SaveLayoutValues();
     SaveAudioValues();
@@ -997,6 +1025,30 @@ void Config::SavePathValues() {
     qt_config->endArray();
     WriteSetting(QStringLiteral("recentFiles"), UISettings::values.recent_files);
     WriteSetting(QStringLiteral("language"), UISettings::values.language, QString{});
+
+    qt_config->endGroup();
+}
+
+void Config::SaveCpuValues() {
+    qt_config->beginGroup(QStringLiteral("Cpu"));
+
+        WriteSetting(QStringLiteral("cpu_accuracy"),
+                     static_cast<int>(Settings::values.cpu_accuracy), 0);
+
+        WriteSetting(QStringLiteral("cpuopt_page_tables"), Settings::values.cpuopt_page_tables,
+                     true);
+        WriteSetting(QStringLiteral("cpuopt_block_linking"), Settings::values.cpuopt_block_linking,
+                     true);
+        WriteSetting(QStringLiteral("cpuopt_return_stack_buffer"),
+                     Settings::values.cpuopt_return_stack_buffer, true);
+        WriteSetting(QStringLiteral("cpuopt_fast_dispatcher"),
+                     Settings::values.cpuopt_fast_dispatcher, true);
+        WriteSetting(QStringLiteral("cpuopt_context_elimination"),
+                     Settings::values.cpuopt_context_elimination, true);
+        WriteSetting(QStringLiteral("cpuopt_const_prop"), Settings::values.cpuopt_const_prop, true);
+        WriteSetting(QStringLiteral("cpuopt_misc_ir"), Settings::values.cpuopt_misc_ir, true);
+        WriteSetting(QStringLiteral("cpuopt_reduce_misalign_checks"),
+                     Settings::values.cpuopt_reduce_misalign_checks, true);
 
     qt_config->endGroup();
 }

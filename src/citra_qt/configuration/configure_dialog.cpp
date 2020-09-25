@@ -59,6 +59,8 @@ void ConfigureDialog::ApplyConfiguration() {
     ui->inputTab->ApplyConfiguration();
     ui->inputTab->ApplyProfile();
     ui->hotkeysTab->ApplyConfiguration(registry);
+    ui->cpuTab->ApplyConfiguration();
+    ui->cpuDebugTab->ApplyConfiguration();
     ui->graphicsTab->ApplyConfiguration();
     ui->enhancementsTab->ApplyConfiguration();
     ui->audioTab->ApplyConfiguration();
@@ -75,9 +77,10 @@ Q_DECLARE_METATYPE(QList<QWidget*>);
 void ConfigureDialog::PopulateSelectionList() {
     ui->selectorList->clear();
 
-    const std::array<std::pair<QString, QList<QWidget*>>, 5> items{
+    const std::array<std::pair<QString, QList<QWidget*>>, 6> items{
         {{tr("General"), {ui->generalTab, ui->webTab, ui->debugTab, ui->uiTab}},
          {tr("System"), {ui->systemTab, ui->cameraTab}},
+         {tr("CPU"), {ui->cpuTab, ui->cpuDebugTab}},
          {tr("Graphics"), {ui->enhancementsTab, ui->graphicsTab}},
          {tr("Audio"), {ui->audioTab}},
          {tr("Controls"), {ui->inputTab, ui->hotkeysTab}}}};
@@ -129,6 +132,8 @@ void ConfigureDialog::UpdateVisibleTabs() {
                                                  {ui->systemTab, tr("System")},
                                                  {ui->inputTab, tr("Input")},
                                                  {ui->hotkeysTab, tr("Hotkeys")},
+                                                 {ui->cpuTab, tr("CPU")},
+                                                 {ui->cpuDebugTab, tr("Debug")},
                                                  {ui->enhancementsTab, tr("Enhancements")},
                                                  {ui->graphicsTab, tr("Advanced")},
                                                  {ui->audioTab, tr("Audio")},

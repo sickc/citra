@@ -44,6 +44,12 @@ add_executable(citra-qt
     configuration/configure_camera.cpp
     configuration/configure_camera.h
     configuration/configure_camera.ui
+    configuration/configure_cpu.cpp
+    configuration/configure_cpu.h
+    configuration/configure_cpu.ui
+    configuration/configure_cpu_debug.cpp
+    configuration/configure_cpu_debug.h
+    configuration/configure_cpu_debug.ui
     configuration/configure_debug.cpp
     configuration/configure_debug.h
     configuration/configure_debug.ui

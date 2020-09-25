@@ -14,6 +14,11 @@
 
 namespace Settings {
 
+enum class CPUAccuracy {
+    Accurate = 0,
+    DebugMode = 1,
+};
+
 enum class InitClock {
     SystemTime = 0,
     FixedTime = 1,
@@ -142,6 +147,18 @@ struct Values {
     bool use_custom_cpu_ticks;
     u64 custom_cpu_ticks;
     int cpu_clock_percentage;
+
+    // Cpu
+    CPUAccuracy cpu_accuracy;
+
+    bool cpuopt_page_tables;
+    bool cpuopt_block_linking;
+    bool cpuopt_return_stack_buffer;
+    bool cpuopt_fast_dispatcher;
+    bool cpuopt_context_elimination;
+    bool cpuopt_const_prop;
+    bool cpuopt_misc_ir;
+    bool cpuopt_reduce_misalign_checks;
 
     // Data Storage
     bool use_virtual_sd;

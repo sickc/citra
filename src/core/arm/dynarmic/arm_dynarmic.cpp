@@ -15,6 +15,7 @@
 #include "core/gdbstub/gdbstub.h"
 #include "core/hle/kernel/svc.h"
 #include "core/memory.h"
+#include "core/settings.h"
 
 class DynarmicThreadContext final : public ARM_Interface::ThreadContext {
 public:
@@ -352,6 +353,35 @@ std::unique_ptr<Dynarmic::A32::Jit> ARM_Dynarmic::MakeJit() {
     config.page_table = current_page_table->GetRawPageTables();
     config.coprocessors[15] = std::make_shared<DynarmicCP15>(cp15_state);
     config.define_unpredictable_behaviour = true;
+
+    // Safe optimizations
+    if (Settings::values.cpu_accuracy != Settings::CPUAccuracy::Accurate) {
+        if (!Settings::values.cpuopt_page_tables) {
+            config.page_table = nullptr;
+        }
+        if (!Settings::values.cpuopt_block_linking) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::BlockLinking;
+        }
+        if (!Settings::values.cpuopt_return_stack_buffer) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::ReturnStackBuffer;
+        }
+        if (!Settings::values.cpuopt_fast_dispatcher) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::FastDispatch;
+        }
+        if (!Settings::values.cpuopt_context_elimination) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::GetSetElimination;
+        }
+        if (!Settings::values.cpuopt_const_prop) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::ConstProp;
+        }
+        if (!Settings::values.cpuopt_misc_ir) {
+            config.optimizations &= ~Dynarmic::OptimizationFlag::MiscIROpt;
+        }
+        if (!Settings::values.cpuopt_reduce_misalign_checks) {
+            config.only_detect_misalignment_via_page_table_on_page_boundary = false;
+        }
+    }
+
     return std::make_unique<Dynarmic::A32::Jit>(config);
 }
 

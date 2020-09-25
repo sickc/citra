@@ -37,6 +37,7 @@ private:
     void ReadMiscellaneousValues();
     void ReadMultiplayerValues();
     void ReadPathValues();
+    void ReadCpuValues();
     void ReadRendererValues();
     void ReadShortcutValues();
     void ReadSystemValues();
@@ -59,6 +60,7 @@ private:
     void SaveMiscellaneousValues();
     void SaveMultiplayerValues();
     void SavePathValues();
+    void SaveCpuValues();
     void SaveRendererValues();
     void SaveShortcutValues();
     void SaveSystemValues();
