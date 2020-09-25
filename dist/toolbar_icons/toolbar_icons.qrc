@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/toolbar_icons">
+        <file>rc/chat.png</file>
+        <file>rc/cheats.png</file>
+        <file>rc/close.png</file>
+        <file>rc/configure.png</file>
+        <file>rc/direct.png</file>
+        <file>rc/fullscreen.png</file>
+        <file>rc/load_file.png</file>
+        <file>rc/fullscreen_exit.png</file>
+        <file>rc/Lobby.png</file>
+        <file>rc/open.png</file>
+        <file>rc/pause.png</file>
+        <file>rc/play.png</file>
+        <file>rc/reset.png</file>
+        <file>rc/start.png</file>
+        <file>rc/stop.png</file>
+    </qresource>
+</RCC>

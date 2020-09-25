@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
+#include <boost/unordered_map.hpp>
 #include <cstring>
 #include <type_traits>
 #include <vector>
@@ -61,7 +62,7 @@ namespace Service::SOC {
 const s32 SOCKET_ERROR_VALUE = -1;
 
 /// Holds the translation from system network errors to 3DS network errors
-static const std::unordered_map<int, int> error_map = {{
+static const boost::unordered_map<int, int> error_map = {{
     {E2BIG, 1},
     {ERRNO(EACCES), 2},
     {ERRNO(EADDRINUSE), 3},
@@ -161,7 +162,7 @@ static int TranslateError(int error) {
 
 /// Holds the translation from system network socket options to 3DS network socket options
 /// Note: -1 = No effect/unavailable
-static const std::unordered_map<int, int> sockopt_map = {{
+static const boost::unordered_map<int, int> sockopt_map = {{
     {0x0004, SO_REUSEADDR},
     {0x0080, -1},
     {0x0100, -1},

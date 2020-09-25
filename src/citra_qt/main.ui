@@ -137,6 +137,7 @@
     <addaction name="action_Display_Dock_Widget_Headers"/>
     <addaction name="action_Show_Filter_Bar"/>
     <addaction name="action_Show_Status_Bar"/>
+    <addaction name="action_Show_Toolbar"/>
     <addaction name="separator"/>
     <addaction name="menu_View_Debugging"/>
    </widget>
@@ -198,6 +199,44 @@
    <addaction name="menu_Tools"/>
    <addaction name="menu_Help"/>
   </widget>
+    <widget class="QToolBar" name="toolbar">
+      <property name="enabled">
+        <bool>true</bool>
+      </property>
+      <property name="windowTitle">
+        <string>Toolbar</string>
+      </property>
+      <property name="iconSize">
+        <size>
+          <width>35</width>
+          <height>30</height>
+        </size>
+      </property>
+      <property name="floatable">
+        <bool>false</bool>
+      </property>
+      <attribute name="toolBarArea">
+        <enum>TopToolBarArea</enum>
+     </attribute>
+      <attribute name="toolBarBreak">
+        <bool>false</bool>
+      </attribute>
+      <addaction name="action_Toolbar_Load_File"/>
+      <addaction name="action_Toolbar_Toggle_Fullscreen"/>
+      <addaction name="separator"/>
+      <addaction name="action_Toolbar_Start_Pause"/>
+      <addaction name="action_Toolbar_Stop"/>
+      <addaction name="action_Toolbar_Restart"/>
+      <addaction name="separator"/>
+      <addaction name="action_Toolbar_Configure"/>
+      <addaction name="action_Toolbar_Cheats"/>
+      <addaction name="separator"/>
+      <addaction name="action_Toolbar_View_Lobby"/>
+      <addaction name="action_Toolbar_Start_Room"/>
+      <addaction name="action_Toolbar_Stop_Room"/>
+      <addaction name="action_Toolbar_Connect_To_Room"/>
+      <addaction name="action_Toolbar_Chat"/>
+    </widget>
   <action name="action_Load_File">
    <property name="text">
     <string>Load File...</string>
@@ -235,6 +274,14 @@
    </property>
    <property name="text">
     <string>&amp;Stop</string>
+   </property>
+  </action>
+  <action name="action_Restart">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Restart</string>
    </property>
   </action>
   <action name="action_Save">
@@ -313,6 +360,14 @@
    </property>
    <property name="text">
     <string>Show Status Bar</string>
+   </property>
+  </action>
+  <action name="action_Show_Toolbar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Tool Bar</string>
    </property>
   </action>
   <action name="action_Create_Pica_Surface_Viewer">
@@ -423,6 +478,192 @@
     <string>Fullscreen</string>
    </property>
   </action>
+    <action name="action_Toolbar_Load_File">
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/load_file.png</normaloff>:/toolbar_icons/rc/load_file.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Load File...</string>
+      </property>
+      <property name="toolTip">
+        <string>Load File </string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Toggle_Fullscreen">
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/fullscreen.png</normaloff>:/toolbar_icons/rc/fullscreen.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Toggle fullscreen</string>
+      </property>
+      <property name="toolTip">
+        <string>Toggle fullscreen</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Start_Pause">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/start.png</normaloff>:/toolbar_icons/rc/start.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Start</string>
+      </property>
+      <property name="toolTip">
+        <string>Start emulation</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Stop">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/stop.png</normaloff>:/toolbar_icons/rc/stop.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Stop</string>
+      </property>
+      <property name="toolTip">
+        <string>Stop emulation</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Restart">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/reset.png</normaloff>:/toolbar_icons/rc/reset.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>RestartGame</string>
+      </property>
+      <property name="toolTip">
+        <string>Restart Game</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Configure">
+      <property name="enabled">
+        <bool>true</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/configure.png</normaloff>:/toolbar_icons/rc/configure.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Configure</string>
+      </property>
+      <property name="toolTip">
+        <string>Configure</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Cheats">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/cheats.png</normaloff>:/toolbar_icons/rc/cheats.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Cheats</string>
+      </property>
+      <property name="toolTip">
+        <string>Cheats</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_View_Lobby">
+      <property name="enabled">
+        <bool>true</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/Lobby.png</normaloff>:/toolbar_icons/rc/Lobby.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Browse Public Game Lobby</string>
+      </property>
+      <property name="toolTip">
+        <string>Browse Public Game Lobby</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Start_Room">
+      <property name="enabled">
+        <bool>true</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/open.png</normaloff>:/toolbar_icons/rc/open.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Create Room</string>
+      </property>
+      <property name="toolTip">
+        <string>Create Room</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Stop_Room">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/close.png</normaloff>:/toolbar_icons/rc/close.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Close Room</string>
+      </property>
+      <property name="toolTip">
+        <string>Close Room</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Connect_To_Room">
+      <property name="enabled">
+        <bool>true</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/direct.png</normaloff>:/toolbar_icons/rc/direct.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Direct Connect to Room</string>
+      </property>
+      <property name="toolTip">
+        <string>Direct Connect to Room</string>
+      </property>
+    </action>
+    <action name="action_Toolbar_Chat">
+      <property name="enabled">
+        <bool>false</bool>
+      </property>
+      <property name="icon">
+        <iconset resource="../../dist/toolbar_icons/toolbar_icons.qrc">
+          <normaloff>:/toolbar_icons/rc/chat.png</normaloff>:/toolbar_icons/rc/chat.png
+        </iconset>
+      </property>
+      <property name="text">
+        <string>Chat</string>
+      </property>
+      <property name="toolTip">
+        <string>Chat</string>
+      </property>
+    </action>
   <action name="action_Open_Maintenance_Tool">
    <property name="text">
     <string>Modify Citra Install</string>
@@ -533,6 +774,8 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../dist/toolbar_icons/toolbar_icons.qrc"/>
+ </resources>
  <connections/>
 </ui>
