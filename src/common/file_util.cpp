@@ -756,10 +756,37 @@ std::string SerializePath(const std::string& input, bool is_saving) {
     return result;
 }
 
-const std::string& GetUserPath(UserPath path) {
+const std::string& GetUserPath(UserPath path, const std::string& new_path) {
     // Set up all paths and files on the first run
     if (g_paths.empty())
         SetUserPath();
+
+    auto& user_path = g_paths[UserPath::UserDir];
+
+    if (!new_path.empty()) {
+        if (!FileUtil::IsDirectory(new_path)) {
+            LOG_ERROR(Common_Filesystem, "Invalid path specified {}", new_path);
+            return g_paths[path];
+        } else {
+            g_paths[path] = new_path + DIR_SEP;
+        }
+
+        switch (path) {
+        case UserPath::RootDir:
+            user_path = g_paths[UserPath::RootDir] + DIR_SEP;
+            break;
+        case UserPath::UserDir:
+            user_path = g_paths[UserPath::RootDir] + DIR_SEP;
+            g_paths[UserPath::ConfigDir] = user_path + CONFIG_DIR DIR_SEP;
+            g_paths[UserPath::CacheDir] = user_path + CACHE_DIR DIR_SEP;
+            g_paths[UserPath::SDMCDir] = user_path + SDMC_DIR DIR_SEP;
+            g_paths[UserPath::NANDDir] = user_path + NAND_DIR DIR_SEP;
+            break;
+        default:
+            break;
+        }
+    }
+
     return g_paths[path];
 }
 std::size_t WriteStringToFile(bool text_file, const std::string& filename, std::string_view str) {

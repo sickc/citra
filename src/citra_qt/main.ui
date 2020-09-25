@@ -69,6 +69,9 @@
     <addaction name="separator"/>
     <addaction name="menu_recent_files"/>
     <addaction name="separator"/>
+    <addaction name="action_Select_NAND_Directory"/>
+    <addaction name="action_Select_SDMC_Directory"/>
+    <addaction name="separator"/>
     <addaction name="menu_Amiibo"/>
     <addaction name="separator"/>
     <addaction name="action_Open_Citra_Folder"/>
@@ -772,6 +775,22 @@
    <property name="text">
     <string>Open Citra Folder</string>
    </property>
+  </action>
+  <action name="action_Select_NAND_Directory">
+    <property name="text">
+      <string>Select NAND Directory...</string>
+    </property>
+    <property name="toolTip">
+      <string>Selects a folder to use as the root of the emulated NAND</string>
+    </property>
+  </action>
+  <action name="action_Select_SDMC_Directory">
+    <property name="text">
+      <string>Select SD Card Directory...</string>
+    </property>
+    <property name="toolTip">
+      <string>Selects a folder to use as the root of the emulated SD card</string>
+    </property>
   </action>
  </widget>
  <resources>
