@@ -234,6 +234,11 @@
           </item>
           <item>
            <property name="text">
+            <string>Medium Screen</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
             <string>Large Screen</string>
            </property>
           </item>

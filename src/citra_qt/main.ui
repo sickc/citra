@@ -123,6 +123,7 @@
      </property>
      <addaction name="action_Screen_Layout_Default"/>
      <addaction name="action_Screen_Layout_Single_Screen"/>
+     <addaction name="action_Screen_Layout_Medium_Screen"/>
      <addaction name="action_Screen_Layout_Large_Screen"/>
      <addaction name="action_Screen_Layout_Side_by_Side"/>
      <addaction name="separator"/>
@@ -444,6 +445,14 @@
    </property>
    <property name="text">
     <string>Single Screen</string>
+   </property>
+  </action>
+  <action name="action_Screen_Layout_Medium_Screen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Medium Screen</string>
    </property>
   </action>
   <action name="action_Screen_Layout_Large_Screen">

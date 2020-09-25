@@ -305,6 +305,7 @@ void GMainWindow::InitializeWidgets() {
     QActionGroup* actionGroup_ScreenLayouts = new QActionGroup(this);
     actionGroup_ScreenLayouts->addAction(ui.action_Screen_Layout_Default);
     actionGroup_ScreenLayouts->addAction(ui.action_Screen_Layout_Single_Screen);
+    actionGroup_ScreenLayouts->addAction(ui.action_Screen_Layout_Medium_Screen);
     actionGroup_ScreenLayouts->addAction(ui.action_Screen_Layout_Large_Screen);
     actionGroup_ScreenLayouts->addAction(ui.action_Screen_Layout_Side_by_Side);
 }
@@ -734,6 +735,8 @@ void GMainWindow::ConnectMenuEvents() {
     connect(ui.action_Screen_Layout_Default, &QAction::triggered, this,
             &GMainWindow::ChangeScreenLayout);
     connect(ui.action_Screen_Layout_Single_Screen, &QAction::triggered, this,
+            &GMainWindow::ChangeScreenLayout);
+    connect(ui.action_Screen_Layout_Medium_Screen, &QAction::triggered, this,
             &GMainWindow::ChangeScreenLayout);
     connect(ui.action_Screen_Layout_Large_Screen, &QAction::triggered, this,
             &GMainWindow::ChangeScreenLayout);
@@ -1674,6 +1677,8 @@ void GMainWindow::ChangeScreenLayout() {
         new_layout = Settings::LayoutOption::Default;
     } else if (ui.action_Screen_Layout_Single_Screen->isChecked()) {
         new_layout = Settings::LayoutOption::SingleScreen;
+    } else if (ui.action_Screen_Layout_Medium_Screen->isChecked()) {
+        new_layout = Settings::LayoutOption::MediumScreen;
     } else if (ui.action_Screen_Layout_Large_Screen->isChecked()) {
         new_layout = Settings::LayoutOption::LargeScreen;
     } else if (ui.action_Screen_Layout_Side_by_Side->isChecked()) {
@@ -1692,6 +1697,9 @@ void GMainWindow::ToggleScreenLayout() {
         new_layout = Settings::LayoutOption::SingleScreen;
         break;
     case Settings::LayoutOption::SingleScreen:
+        new_layout = Settings::LayoutOption::MediumScreen;
+        break;
+    case Settings::LayoutOption::MediumScreen:
         new_layout = Settings::LayoutOption::LargeScreen;
         break;
     case Settings::LayoutOption::LargeScreen:
@@ -2324,6 +2332,8 @@ void GMainWindow::SyncMenuUISettings() {
                                                 Settings::LayoutOption::Default);
     ui.action_Screen_Layout_Single_Screen->setChecked(Settings::values.layout_option ==
                                                       Settings::LayoutOption::SingleScreen);
+    ui.action_Screen_Layout_Medium_Screen->setChecked(Settings::values.layout_option ==
+                                                     Settings::LayoutOption::MediumScreen);
     ui.action_Screen_Layout_Large_Screen->setChecked(Settings::values.layout_option ==
                                                      Settings::LayoutOption::LargeScreen);
     ui.action_Screen_Layout_Side_by_Side->setChecked(Settings::values.layout_option ==
