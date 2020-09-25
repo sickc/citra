@@ -87,6 +87,9 @@ void LogSettings() {
     log_setting("Renderer_FrameLimit", values.frame_limit);
     log_setting("Renderer_UseFrameLimitAlternate", values.use_frame_limit_alternate);
     log_setting("Renderer_FrameLimitAlternate", values.frame_limit_alternate);
+    log_setting("use_custom_cpu_ticks", values.use_custom_cpu_ticks);
+    log_setting("custom_cpu_ticks", values.custom_cpu_ticks);
+    log_setting("cpu_clock_percentage", values.cpu_clock_percentage);
     log_setting("Renderer_PostProcessingShader", values.pp_shader_name);
     log_setting("Renderer_FilterMode", values.filter_mode);
     log_setting("Renderer_TextureFilterName", values.texture_filter_name);

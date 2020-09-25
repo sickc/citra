@@ -139,6 +139,8 @@ struct Values {
 
     // Core
     bool use_cpu_jit;
+    bool use_custom_cpu_ticks;
+    u64 custom_cpu_ticks;
     int cpu_clock_percentage;
 
     // Data Storage

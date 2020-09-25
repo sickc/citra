@@ -251,6 +251,7 @@ ConfigureSystem::ConfigureSystem(QWidget* parent) : QWidget(parent), ui(new Ui::
     connect(ui->slider_clock_speed, &QSlider::valueChanged, [&](int value) {
         ui->clock_display_label->setText(QStringLiteral("%1%").arg(SliderToSettings(value)));
     });
+    connect(ui->use_custom_cpu_ticks, &QCheckBox::toggled, ui->custom_cpu_ticks, &QSpinBox::setEnabled);
 
     ConfigureTime();
 }
@@ -281,6 +282,9 @@ void ConfigureSystem::SetConfiguration() {
     ui->slider_clock_speed->setValue(SettingsToSlider(Settings::values.cpu_clock_percentage));
     ui->clock_display_label->setText(
         QStringLiteral("%1%").arg(Settings::values.cpu_clock_percentage));
+    ui->use_custom_cpu_ticks->setChecked(Settings::values.use_custom_cpu_ticks);
+    ui->custom_cpu_ticks->setEnabled(ui->use_custom_cpu_ticks->isChecked());
+    ui->custom_cpu_ticks->setValue(Settings::values.custom_cpu_ticks);
 
     ui->toggle_new_3ds->setChecked(Settings::values.is_new_3ds);
 }
@@ -385,6 +389,8 @@ void ConfigureSystem::ApplyConfiguration() {
     }
 
     Settings::values.cpu_clock_percentage = SliderToSettings(ui->slider_clock_speed->value());
+    Settings::values.use_custom_cpu_ticks = ui->use_custom_cpu_ticks->isChecked();
+    Settings::values.custom_cpu_ticks = ui->custom_cpu_ticks->value();
     Settings::Apply();
 }
 

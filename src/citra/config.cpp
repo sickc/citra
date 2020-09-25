@@ -104,6 +104,10 @@ void Config::ReadValues() {
 
     // Core
     Settings::values.use_cpu_jit = sdl2_config->GetBoolean("Core", "use_cpu_jit", true);
+    Settings::values.use_custom_cpu_ticks =
+        sdl2_config->GetBoolean("Core", "use_custom_cpu_ticks", false);
+    Settings::values.custom_cpu_ticks =
+        static_cast<u64>(sdl2_config->GetInteger("Core", "custom_cpu_ticks", 77));
     Settings::values.cpu_clock_percentage =
         sdl2_config->GetInteger("Core", "cpu_clock_percentage", 100);
 
