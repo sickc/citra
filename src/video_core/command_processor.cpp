@@ -15,6 +15,7 @@
 #include "core/hw/gpu.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
+#include "core/settings.h"
 #include "video_core/command_processor.h"
 #include "video_core/debug_utils/debug_utils.h"
 #include "video_core/pica_state.h"
@@ -303,12 +304,22 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
         bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
 
-        if (accelerate_draw &&
-            VideoCore::g_renderer->Rasterizer()->AccelerateDrawBatch(is_indexed)) {
-            if (g_debug_context) {
-                g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+        if (Settings::values.use_force_indexed) {
+            if (is_indexed && accelerate_draw &&
+                VideoCore::g_renderer->Rasterizer()->AccelerateDrawBatch(is_indexed)) {
+                if (g_debug_context) {
+                    g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+                }
+                break;
             }
-            break;
+        } else {
+            if (accelerate_draw &&
+                VideoCore::g_renderer->Rasterizer()->AccelerateDrawBatch(is_indexed)) {
+                if (g_debug_context) {
+                    g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+                }
+                break;
+            }
         }
 
         // Processes information about internal vertex attributes to figure out how a vertex is

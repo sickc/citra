@@ -62,6 +62,7 @@ ConfigureGeneral::~ConfigureGeneral() = default;
 
 void ConfigureGeneral::SetConfiguration() {
     ui->toggle_check_exit->setChecked(UISettings::values.confirm_before_closing);
+    ui->toggle_use_force_indexed->setChecked(Settings::values.use_force_indexed);
     ui->toggle_background_pause->setChecked(UISettings::values.pause_when_in_background);
     ui->toggle_hide_mouse->setChecked(UISettings::values.hide_mouse);
 
@@ -125,6 +126,8 @@ void ConfigureGeneral::ApplyConfiguration() {
     UISettings::values.update_on_close = ui->toggle_auto_update->isChecked();
 
     Settings::values.region_value = ui->region_combobox->currentIndex() - 1;
+
+    Settings::values.use_force_indexed = ui->toggle_use_force_indexed->isChecked();
 
     if (ui->frame_limit->value() == ui->frame_limit->maximum()) {
         Settings::values.frame_limit = 0;

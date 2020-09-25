@@ -128,6 +128,8 @@ struct Values {
     // CheckNew3DS
     bool is_new_3ds;
 
+    bool use_force_indexed;
+
     // Controls
     InputProfile current_input_profile;       ///< The current input profile
     int current_input_profile_index;          ///< The current input profile index

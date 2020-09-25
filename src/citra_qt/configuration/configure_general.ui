@@ -119,6 +119,13 @@
           </item>
          </widget>
         </item>
+        <item row="3" column="0">
+         <widget class="QCheckBox" name="toggle_use_force_indexed">
+          <property name="text">
+           <string>Force-validate indexed PICA registers</string>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_emulation_speed">
           <property name="text">
