@@ -136,12 +136,23 @@ bool SurfaceParams::ExactMatch(const SurfaceParams& other_surface) const {
 }
 
 bool SurfaceParams::CanSubRect(const SurfaceParams& sub_surface) const {
-    return sub_surface.addr >= addr && sub_surface.end <= end &&
-           sub_surface.pixel_format == pixel_format && pixel_format != PixelFormat::Invalid &&
-           sub_surface.is_tiled == is_tiled &&
-           (sub_surface.addr - addr) % BytesInPixels(is_tiled ? 64 : 1) == 0 &&
-           (sub_surface.stride == stride || sub_surface.height <= (is_tiled ? 8u : 1u)) &&
-           GetSubRect(sub_surface).right <= stride;
+    if (sub_surface.addr < addr || sub_surface.end > end || sub_surface.stride != stride ||
+        sub_surface.pixel_format != pixel_format || sub_surface.is_tiled != is_tiled ||
+        (sub_surface.addr - addr) * 8 % GetFormatBpp() != 0)
+        return false;
+
+    auto rect = GetSubRect(sub_surface);
+
+    if (rect.right > stride) {
+        return false;
+    }
+
+    if (is_tiled) {
+        return PixelsInBytes(sub_surface.addr - addr) % 64 == 0 && sub_surface.height % 8 == 0 &&
+               sub_surface.width % 8 == 0;
+    }
+
+    return true;
 }
 
 bool SurfaceParams::CanExpand(const SurfaceParams& expanded_surface) const {

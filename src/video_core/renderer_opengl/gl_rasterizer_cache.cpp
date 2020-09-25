@@ -1100,8 +1100,6 @@ Surface RasterizerCacheOpenGL::GetSurface(const SurfaceParams& params, ScaleMatc
     // Use GetSurfaceSubRect instead
     ASSERT(params.width == params.stride);
 
-    ASSERT(!params.is_tiled || (params.width % 8 == 0 && params.height % 8 == 0));
-
     // Check for an exact match in existing surfaces
     Surface surface =
         FindMatch<MatchFlags::Exact | MatchFlags::Invalid>(surface_cache, params, match_res_scale);
@@ -1167,29 +1165,17 @@ SurfaceRect_Tuple RasterizerCacheOpenGL::GetSurfaceSubRect(const SurfaceParams& 
         }
     }
 
-    SurfaceParams aligned_params = params;
-    if (params.is_tiled) {
-        aligned_params.height = Common::AlignUp(params.height, 8);
-        aligned_params.width = Common::AlignUp(params.width, 8);
-        aligned_params.stride = Common::AlignUp(params.stride, 8);
-        aligned_params.UpdateParams();
-    }
-
     // Check for a surface we can expand before creating a new one
     if (surface == nullptr) {
-        surface = FindMatch<MatchFlags::Expand | MatchFlags::Invalid>(surface_cache, aligned_params,
+        surface = FindMatch<MatchFlags::Expand | MatchFlags::Invalid>(surface_cache, params,
                                                                       match_res_scale);
         if (surface != nullptr) {
-            aligned_params.width = aligned_params.stride;
-            aligned_params.UpdateParams();
-
             SurfaceParams new_params = *surface;
-            new_params.addr = std::min(aligned_params.addr, surface->addr);
-            new_params.end = std::max(aligned_params.end, surface->end);
+            new_params.addr = std::min(params.addr, surface->addr);
+            new_params.end = std::max(params.end, surface->end);
             new_params.size = new_params.end - new_params.addr;
-            new_params.height =
-                new_params.size / aligned_params.BytesInPixels(aligned_params.stride);
-            ASSERT(new_params.size % aligned_params.BytesInPixels(aligned_params.stride) == 0);
+            new_params.height = new_params.size / params.BytesInPixels(params.stride);
+            ASSERT(new_params.size % params.BytesInPixels(params.stride) == 0);
 
             Surface new_surface = CreateSurface(new_params);
             DuplicateSurface(surface, new_surface);
@@ -1206,14 +1192,14 @@ SurfaceRect_Tuple RasterizerCacheOpenGL::GetSurfaceSubRect(const SurfaceParams& 
 
     // No subrect found - create and return a new surface
     if (surface == nullptr) {
-        SurfaceParams new_params = aligned_params;
+        SurfaceParams new_params = params;
         // Can't have gaps in a surface
-        new_params.width = aligned_params.stride;
+        new_params.width = params.stride;
         new_params.UpdateParams();
         // GetSurface will create the new surface and possibly adjust res_scale if necessary
         surface = GetSurface(new_params, match_res_scale, load_if_create);
     } else if (load_if_create) {
-        ValidateSurface(surface, aligned_params.addr, aligned_params.size);
+        ValidateSurface(surface, params.addr, params.size);
     }
 
     return std::make_tuple(surface, surface->GetScaledSubRect(params));
@@ -1512,8 +1498,8 @@ SurfaceSurfaceRect_Tuple RasterizerCacheOpenGL::GetFramebufferSurfaces(
     if (color_surface != nullptr && depth_surface != nullptr) {
         fb_rect = color_rect;
         // Color and Depth surfaces must have the same dimensions and offsets
-        if (color_rect.bottom != depth_rect.bottom || color_rect.top != depth_rect.top ||
-            color_rect.left != depth_rect.left || color_rect.right != depth_rect.right) {
+        if (color_rect.bottom != depth_rect.bottom ||
+            color_surface->height != depth_surface->height) {
             color_surface = GetSurface(color_params, ScaleMatch::Exact, false);
             depth_surface = GetSurface(depth_params, ScaleMatch::Exact, false);
             fb_rect = color_surface->GetScaledRect();
@@ -1523,6 +1509,7 @@ SurfaceSurfaceRect_Tuple RasterizerCacheOpenGL::GetFramebufferSurfaces(
     } else if (depth_surface != nullptr) {
         fb_rect = depth_rect;
     }
+    ASSERT(!fb_rect.left && fb_rect.right == config.GetWidth() * resolution_scale_factor);
 
     if (color_surface != nullptr) {
         ValidateSurface(color_surface, boost::icl::first(color_vp_interval),
