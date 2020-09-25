@@ -129,6 +129,8 @@ void Config::ReadValues() {
         static_cast<u16>(sdl2_config->GetInteger("Renderer", "resolution_factor", 1));
     Settings::values.use_disk_shader_cache =
         sdl2_config->GetBoolean("Renderer", "use_disk_shader_cache", true);
+    Settings::values.sharper_distant_objects =
+        sdl2_config->GetBoolean("Renderer", "sharper_distant_objects", false);
     Settings::values.frame_limit =
         static_cast<u16>(sdl2_config->GetInteger("Renderer", "frame_limit", 100));
     Settings::values.use_frame_limit_alternate =

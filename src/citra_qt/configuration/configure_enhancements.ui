@@ -202,6 +202,13 @@
         </item>
        </layout>
       </item>
+      <item>
+       <widget class="QCheckBox" name="sharper_distant_objects">
+        <property name="text">
+         <string>Sharper distant objects</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

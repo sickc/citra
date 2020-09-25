@@ -89,6 +89,7 @@ void ConfigureEnhancements::SetConfiguration() {
                                              Settings::values.use_disk_shader_cache);
     ui->custom_refresh_rate->setChecked(Settings::values.custom_refresh_rate);
     ui->screen_refresh_rate->setValue(Settings::values.screen_refresh_rate);
+    ui->sharper_distant_objects->setChecked(Settings::values.sharper_distant_objects);
     ui->upright_screen->setChecked(Settings::values.upright_screen);
     ui->toggle_dump_textures->setChecked(Settings::values.dump_textures);
     ui->toggle_custom_textures->setChecked(Settings::values.custom_textures);
@@ -151,6 +152,7 @@ void ConfigureEnhancements::ApplyConfiguration() {
         Settings::values.use_hw_shader && ui->toggle_disk_shader_cache->isChecked();
     Settings::values.custom_refresh_rate = ui->custom_refresh_rate->isChecked();
     Settings::values.screen_refresh_rate = ui->screen_refresh_rate->value();
+    Settings::values.sharper_distant_objects = ui->sharper_distant_objects->isChecked();
     Settings::values.upright_screen = ui->upright_screen->isChecked();
     Settings::values.dump_textures = ui->toggle_dump_textures->isChecked();
     Settings::values.custom_textures = ui->toggle_custom_textures->isChecked();
